@@ -1,0 +1,8 @@
+module.exports = {
+  dbUri: 'mongodb://localhost:27018',
+  dbName: 'm2m',
+
+  tcpPort: 4444,
+
+  cacheDevicesTimeout: 60000
+}
