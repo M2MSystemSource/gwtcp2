@@ -6,7 +6,7 @@ module.exports = (app) => {
   cache.devices = () => {
     const devices = app.db.collection('devices')
 
-    devices.find({}).toArray((err, docs) => {
+    devices.find({freeze: false}).toArray((err, docs) => {
       if (err) console.log(err)
       docs.forEach((doc) => {
         imeis[doc._id] = doc
@@ -16,6 +16,10 @@ module.exports = (app) => {
 
   cache.get = (imei) => {
     return imeis[imei] || null
+  }
+
+  cache.exists = (imei) => {
+    return imeis.hasOwnProperty(imei)
   }
 
   // run cache at startup and each 60 seconds
