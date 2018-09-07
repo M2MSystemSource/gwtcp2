@@ -1,7 +1,7 @@
 const debug = require('debug')('gwtcp2:utils')
 
 module.exports = (app) => {
-  const utils = {}
+  const self = {}
 
   /**
    * Recibe una fecha en formato simcom y lo devuelve como unix timestamp GMT0
@@ -12,7 +12,7 @@ module.exports = (app) => {
    *
    * @param {String} data
    */
-  utils.simcomDateTimeToTimestamp = (data) => {
+  self.simcomDateTimeToTimestamp = (data) => {
     const year = parseInt(data.substr(0, 4), 10)
     const month = parseInt(data.substr(4, 2), 10)
     const day = parseInt(data.substr(6, 2), 10)
@@ -22,4 +22,6 @@ module.exports = (app) => {
 
     return Date.UTC(year, month - 1, day, hours, minutes, seconds)
   }
+
+  app.utils = self
 }

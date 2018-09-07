@@ -2,14 +2,21 @@ const debug = require('debug')('gwtcp2:insert-position')
 const parallel = require('async').parallel
 
 module.exports = (app) => {
-  const tracking = app.db.collection('tracking')
-  const device = app.db.collection('devices')
+  const dbDevice = app.db.collection('devices')
   const self = {}
 
-  self.insert = (imei, position, cb) => {
-    debug('app.position', imei, position)
+  self.insert = (imei, position) => {
+    debug('insert')
+    const device = app.cache.get(imei)
+    if (!device) return
+
+    // tenemos que descubrir la colección de tracking de este dispositivo
+    // en función del account que pertenece (cada account tiene su clección
+    // de tracking)
+    const tracking = app.db.collection('trk_' + device._account)
+
     parallel([
-      (callback) => tracking.insert(position, callback),
+      (callback) => tracking.insertOne(position, callback),
       (callback) => {
         let data = position
 
@@ -24,9 +31,12 @@ module.exports = (app) => {
           }
         }
 
-        device.updateOne({_id: imei}, {$set: {data: position}}, callback)
+        dbDevice.updateOne({_id: imei}, {$set: {tracking: data}}, callback)
       }
-    ], cb)
+    ], (err, result) => {
+      if (err) return debug('save position', err)
+      debug('results insert', result[0].result, result[1].result)
+    })
   }
 
   app.position = self

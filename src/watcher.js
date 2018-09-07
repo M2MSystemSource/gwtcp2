@@ -1,9 +1,9 @@
 module.exports = (app) => {
-  const watcher = {}
+  const self = {}
 
-  watcher.emit = (channel, data) => {
+  self.emit = (channel, data) => {
 
   }
 
-  app.watcher = watcher
+  app.watcher = self
 }

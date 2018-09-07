@@ -4,5 +4,7 @@ module.exports = {
 
   tcpPort: 4444,
 
-  cacheDevicesTimeout: 60000
+  cacheDevicesTimeout: 60000,
+
+  ioUrl: 'http://45.76.37.219:5050'
 }
