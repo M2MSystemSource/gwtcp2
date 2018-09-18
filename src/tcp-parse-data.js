@@ -6,7 +6,7 @@ module.exports = (app) => {
   const regex = {}
 
   // 867857039426874|1
-  regex.isGreeting = /^8[0-9]{14}\|1|2$/
+  regex.isGreeting = /^8[0-9]{14}\|(1|2)$/
   // 867857039426874|1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|10208,38694
   regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,4},[0-9]{1,5}$/
   // 867857039426874|0|5000,38694
@@ -40,6 +40,10 @@ module.exports = (app) => {
   }
 
   self.parseGreeting = (data) => {
+    // extraemos el ultimo caracter de la cadena de bienvenida. Esta cadena
+    // suele tener el formato [IMEI]|1 o [IMEI]|0. El 1 indicaría que el dispositivo
+    // está solicitando mantener el TCP abierto para comunicación bidireccional.
+    // el 0 (o cualquier otra cosa) indica que no se requiere TCP abierto
     const keepAlive = parseInt(data.slice(-1), 10)
     debug('parse greeting', keepAlive, data)
     return {
@@ -133,8 +137,8 @@ module.exports = (app) => {
     return {
       _id: shortid.generate(),
       _device: null,
-      gpsTime: app.utils.simcomDateTimeToTimestamp(position[1]),
-      serverTime: Date.now(),
+      gpstime: app.utils.simcomDateTimeToTimestamp(position[1]),
+      servertime: Date.now(),
       data: {
         alt: position[4],
         battery: parseInt(battery[0], 10),
@@ -142,9 +146,9 @@ module.exports = (app) => {
         raw: `${position.join(',')}|${battery.join(',')}`,
         cog: parseInt(position[6], 10),
         gsm: parseInt(position[9], 10),
-        gps: parseInt(position[7], 10),
+        gps: parseFloat(position[7]),
         sats: parseInt(position[8], 10),
-        loc: [parseInt(position[3], 10), parseInt(position[2], 10)],
+        loc: [parseFloat(position[3]), parseFloat(position[2])],
         speed: parseInt(position[5], 10)
       }
     }
@@ -154,8 +158,8 @@ module.exports = (app) => {
     return {
       _id: shortid.generate(),
       _device: null,
-      gpsTime: 0,
-      serverTime: Date.now(),
+      gpstime: 0,
+      servertime: Date.now(),
       data: {
         alt: 0,
         battery: batt[0],

@@ -6,36 +6,35 @@ module.exports = (app) => {
   const self = {}
 
   self.insert = (imei, position) => {
-    debug('insert')
     const device = app.cache.get(imei)
     if (!device) return
 
     // tenemos que descubrir la colección de tracking de este dispositivo
-    // en función del account que pertenece (cada account tiene su clección
+    // en función del account que pertenece (cada account tiene su colección
     // de tracking)
     const tracking = app.db.collection('trk_' + device._account)
 
     parallel([
       (callback) => tracking.insertOne(position, callback),
       (callback) => {
-        let data = position
+        let tracking = position
 
-        if (position.gps === 0) {
+        if (position.data.gps === 0) {
           // actualizamos solo la batería
           // si no se incluyen datos de geolocalización
-          data = {}
-          data.servertime = position.servertime
-          data.tracking = {
-            battery: position.tracking.battery,
-            extbattery: position.tracking.extbattery
-          }
-        }
+          tracking = {}
+          tracking['tracking.servertime'] = position.servertime
+          tracking['tracking.data.battery'] = position.data.battery
+          tracking['tracking.data.extbattery'] = position.data.extbattery
 
-        dbDevice.updateOne({_id: imei}, {$set: {tracking: data}}, callback)
+          dbDevice.updateOne({_id: imei}, {$set: tracking}, callback)
+        } else {
+          dbDevice.updateOne({_id: imei}, {$set: {tracking: tracking}}, callback)
+        }
       }
     ], (err, result) => {
-      if (err) return debug('save position', err)
-      debug('results insert', result[0].result, result[1].result)
+      if (err) return debug('[ERR] save position', err)
+      app.io.local.emit('gwtcp2/position', {position, customerId: device._account})
     })
   }
 

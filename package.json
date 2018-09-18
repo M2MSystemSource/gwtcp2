@@ -4,13 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon app.js"
+    "dev": "HTTP_PORT=3355 PORT=9183 DEBUG=gwtcp2* nodemon app.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "async": "^2.6.1",
     "debug": "^3.1.0",
+    "express": "^4.16.3",
     "mongodb": "^3.1.4",
     "shortid": "^2.2.13",
     "socket.io-client": "^2.1.1"

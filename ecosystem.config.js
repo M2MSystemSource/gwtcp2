@@ -7,15 +7,17 @@ module.exports = {
     name: 'gwtcp2',
     script: '/var/m2m/gwtcp2/source/app.js',
     restart_delay: 1000,
-    instances: 0,
+    instances: 1,
     max_restarts: 0,
-    exec_mode: 'cluster',
+    exec_mode: 'fork',
     env: {
+      HTTP_PORT: 9183,
       PORT: 9183,
       DEBUG: 'gwtcp2*',
-      NODE_ENV: 'production'
+      NODE_ENV: 'development'
     },
     env_production: {
+      HTTP_PORT: 9183,
       PORT: 9183,
       DEBUG: 'gwtcp2*',
       NODE_ENV: 'production'
