@@ -1,6 +1,6 @@
 const path = require('path')
 
-const app = {}
+const app = require(path.join(__dirname, 'src/event'))
 app.conf = require(path.join(__dirname, 'src/conf'))
 
 // Conectamos a DB. El Callback indica que la conexión se ha realizado
@@ -14,4 +14,5 @@ require(path.join(__dirname, 'src/db'))(app, () => {
   require(path.join(__dirname, 'src/utils'))(app)
   require(path.join(__dirname, 'src/insert-position'))(app)
   require(path.join(__dirname, 'src/tcp'))(app)
+  require(path.join(__dirname, 'src/http'))(app)
 })

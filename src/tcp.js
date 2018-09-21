@@ -9,7 +9,7 @@ module.exports = (app) => {
   self.eachClient = (cb) => Object.keys(clients).forEach((imei) => cb(imei, clients[imei]))
 
   net.createServer((socket) => {
-    socket.setKeepAlive(true)
+    socket.setKeepAlive(true, 5000)
 
     debug('new connection: ' + socket.remoteAddress + ':' + socket.remotePort)
 
@@ -51,8 +51,7 @@ module.exports = (app) => {
       console.log('[ERR]', err)
       console.log('[ERR] code', err.code)
     })
-
-  }).listen(app.conf.tcpPort)
+  }).listen(3135)
 
   self.closeSocket = (imei, socket) => {
     if (socket) socket.destroy()
@@ -68,9 +67,14 @@ module.exports = (app) => {
 
   self.saveSocket = (imei, socket) => {
     socket.imei = imei
-    clients[imei] = clients[imei] || {}
-    clients[imei].socket = socket
-    clients[imei].waitingAck = false
+
+    if (clients[imei]) {
+      clients[imei].socket = socket
+    } else {
+      clients[imei] = clients[imei] || {}
+      clients[imei].socket = socket
+      clients[imei].waitingAck = false
+    }
   }
 
   self.savePosition = (imei, position) => {
@@ -83,6 +87,14 @@ module.exports = (app) => {
     const client = clients[imei]
     if (!client) return false
 
+    if (!client.socket) {
+      return false
+    }
+
+    if (client.socket.destroyed) {
+      return false
+    }
+
     try {
       client.socket.write('\n', cb)
       return true
@@ -90,6 +102,31 @@ module.exports = (app) => {
       console.log('[Err] tcp.isAlive', e)
       return false
     }
+  }
+
+  self.transmitCmd = (deviceId, cmdId, cmd) => {
+    if (!app.tcp.isAlive(deviceId)) {
+      console.log('Fail writting to the socket')
+      return false
+    }
+
+    const client = app.tcp.getClient(deviceId)
+    if (!client) {
+      console.log('Not client found on this node')
+      return false
+    }
+
+    console.log('CLIENT FOUND!')
+    client.waitingAck = cmdId
+    try {
+      client.socket.write(cmd)
+    } catch (e) {
+      console.log('[ERR] socket write fail', e)
+      app.tcp.closeSocket(deviceId)
+      return false
+    }
+
+    return true
   }
 
   /**
@@ -152,7 +189,8 @@ module.exports = (app) => {
     if (!client) return
 
     if (client.waitingAck) {
-      app.io.local.emit('gwtcp2/ack', {deviceId: socket.imei, ack: client.waitingAck})
+      console.log('processACK OK')
+      app.emit('ack-' + client.waitingAck)
       client.waitingAck = null
     }
   }

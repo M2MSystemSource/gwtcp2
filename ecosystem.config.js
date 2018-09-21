@@ -12,13 +12,13 @@ module.exports = {
     exec_mode: 'fork',
     env: {
       HTTP_PORT: 9183,
-      PORT: 9183,
+      PORT: 3135,
       DEBUG: 'gwtcp2*',
       NODE_ENV: 'development'
     },
     env_production: {
       HTTP_PORT: 9183,
-      PORT: 9183,
+      PORT: 3135,
       DEBUG: 'gwtcp2*',
       NODE_ENV: 'production'
     }
