@@ -11,7 +11,7 @@ module.exports = (app) => {
         client.socket.destroy()
       })
     }
-    if (exitCode || exitCode === 0) console.log(exitCode)
+
     if (options.exit) process.exit()
   }
 

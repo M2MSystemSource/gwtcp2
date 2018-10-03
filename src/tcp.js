@@ -1,6 +1,7 @@
 const net = require('net')
 const debug = require('debug')('gwtcp2:tcp')
 const clients = {}
+const TIMEOUT = 1000 * 30
 
 module.exports = (app) => {
   const self = {}
@@ -9,18 +10,25 @@ module.exports = (app) => {
   self.eachClient = (cb) => Object.keys(clients).forEach((imei) => cb(imei, clients[imei]))
 
   net.createServer((socket) => {
-    socket.setKeepAlive(true, 5000)
+    socket.setTimeout(TIMEOUT)
 
     debug('new connection: ' + socket.remoteAddress + ':' + socket.remotePort)
 
     socket.on('data', (rawData) => {
       const data = rawData.toString('utf8')
       const imei = (socket.imei) ? socket.imei : ''
-      debug('> ' + imei, data)
       const position = app.data.parse(data.toString('utf8'))
       if (!position) {
         debug('Invalid incoming data')
+        socket.destroy()
         return null
+      }
+
+      const device = app.cache.get(imei)
+      if (device) {
+        debug('>', imei, device.name, data)
+      } else {
+        debug('>', imei, data)
       }
 
       switch (position.mode) {
@@ -51,7 +59,12 @@ module.exports = (app) => {
       console.log('[ERR]', err)
       console.log('[ERR] code', err.code)
     })
-  }).listen(3135)
+
+    socket.on('timeout', () => {
+      console.log('timeout')
+      self.closeSocket()
+    })
+  }).listen(app.conf.tcpPort)
 
   self.closeSocket = (imei, socket) => {
     if (socket) socket.destroy()
@@ -69,7 +82,10 @@ module.exports = (app) => {
     socket.imei = imei
 
     if (clients[imei]) {
+      clients[imei].socket.setTimeout(0)
+      delete clients[imei].socket
       clients[imei].socket = socket
+      clients[imei].socket.setTimeout(TIMEOUT)
     } else {
       clients[imei] = clients[imei] || {}
       clients[imei].socket = socket
@@ -116,7 +132,7 @@ module.exports = (app) => {
       return false
     }
 
-    console.log('CLIENT FOUND!')
+    console.log('CLIENT FOUND!, writting command', cmd)
     client.waitingAck = cmdId
     try {
       client.socket.write(cmd)
@@ -209,6 +225,6 @@ module.exports = (app) => {
     return client
   }
 
-  console.log('Server listening on port ' + app.conf.tcpPort)
+  console.log(`- TCP on port ${app.conf.tcpPort} -`)
   app.tcp = self
 }

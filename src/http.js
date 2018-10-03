@@ -1,7 +1,6 @@
 const express = require('express')
 const http = express()
 var bodyParser = require('body-parser')
-const port = process.env.HTTP_PORT
 
 http.use(bodyParser.json())
 http.use(bodyParser.urlencoded({ extended: true }))
@@ -72,7 +71,7 @@ module.exports = (app) => {
 
   })
 
-  http.listen(port, () => console.log(`HTTP express listening on port ${port}!`))
+  http.listen(app.conf.httpPort, () => console.log(`- HTTP on port ${app.conf.httpPort} -`))
 
   app.http = http
 }
