@@ -26,8 +26,6 @@ module.exports = (app) => {
         return null
       }
 
-      console.log('position', position)
-
       const device = app.cache.get(imei)
       if (device) {
         debug('>', imei, device.name, data)
@@ -62,11 +60,6 @@ module.exports = (app) => {
     socket.on('error', (err) => {
       console.log('[ERR]', err)
       console.log('[ERR] code', err.code)
-    })
-
-    socket.on('timeout', () => {
-      console.log('timeout')
-      self.closeSocket()
     })
   }).listen(app.conf.tcpPort)
 
