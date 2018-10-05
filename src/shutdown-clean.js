@@ -4,7 +4,8 @@ module.exports = (app) => {
 
   function exitHandler (options, exitCode) {
     if (options.cleanup) {
-      console.log('clean')
+      console.log('clean', options)
+      console.log('exitCode', exitCode)
       app.tcp.eachClient((deviceId, client) => {
         if (!client.socket) return
         app.io.local.emit('gwtcp2/shutdown', {imei: client.imei})
@@ -15,12 +16,27 @@ module.exports = (app) => {
     if (options.exit) process.exit()
   }
 
-  process.on('exit', exitHandler.bind(null, {cleanup: true}))
+  process.on('exit', () => {
+    console.log('BECAUSE EXIT')
+    exitHandler({cleanup: true})
+  })
 
-  process.on('SIGINT', exitHandler.bind(null, {exit: true}))
+  process.on('SIGINT', () => {
+    console.log('BECAUSE SIGINT')
+    exitHandler({exit: true})
+  })
 
-  process.on('SIGUSR1', exitHandler.bind(null, {exit: true}))
-  process.on('SIGUSR2', exitHandler.bind(null, {exit: true}))
+  process.on('SIGUSR1', () => {
+    console.log('BECAUSE SIGUSR1')
+    exitHandler({exit: true})
+  })
+  process.on('SIGUSR2', () => {
+    console.log('BECAUSE SIGUSR2')
+    exitHandler({exit: true})
+  })
 
-  process.on('uncaughtException', exitHandler.bind(null, {exit: true}))
+  process.on('uncaughtException', (err) => {
+    console.log('BECAUSE uncaughtException', err)
+    exitHandler({exit: true})
+  })
 }

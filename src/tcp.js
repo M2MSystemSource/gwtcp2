@@ -12,6 +12,7 @@ module.exports = (app) => {
   net.createServer((socket) => {
     socket.setTimeout(TIMEOUT)
 
+    console.log('')
     debug('new connection: ' + socket.remoteAddress + ':' + socket.remotePort)
 
     socket.on('data', (rawData) => {
@@ -20,9 +21,12 @@ module.exports = (app) => {
       const position = app.data.parse(data.toString('utf8'))
       if (!position) {
         debug('Invalid incoming data')
+        debug(data)
         socket.destroy()
         return null
       }
+
+      console.log('position', position)
 
       const device = app.cache.get(imei)
       if (device) {
@@ -175,7 +179,10 @@ module.exports = (app) => {
   }
 
   const processAuto = (position, socket) => {
-    if (!validateImeiOrCloseTcp(position.imei)) return
+    if (!validateImeiOrCloseTcp(position.imei)) {
+      console.log('BIF FAIL! invalid imei antes de savePosition!!!')
+      return
+    }
 
     self.savePosition(position.imei, position.position)
     app.io.local.emit('gwtcp2/position', position)

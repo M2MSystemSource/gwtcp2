@@ -17,8 +17,14 @@ module.exports = (app) => {
   // 1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|4129,38694
   regex.isTcp = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5}$/
 
+  // 1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|4129,38694,0
+  regex.isTcpVSYS = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
+
   // 0|5000,38694
   regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
+
+  0,12|5000,38694,0 // incluye GSM y VSYS
+  regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   regex.isAck = /ack/
   regex.isFail = /ko/
@@ -32,12 +38,19 @@ module.exports = (app) => {
    */
   self.parse = (data) => {
     if (regex.isGreeting.test(data)) return self.parseGreeting(data)
+
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
+
+    else if (regex.isTcpVSYS.test(data)) return self.parseTcp(data)
+    else if (regex.isTcpBattVSYS.test(data)) return self.parseTcpBattVSYS(data)
+
     else if (regex.isTcp.test(data)) return self.parseTcp(data)
     else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
+
     else if (data === 'ack') return self.parseAck(data)
     else if (data === 'ko') return self.parseFail(data)
+
     else {
       debug('regex big fail!')
       return null
@@ -75,11 +88,13 @@ module.exports = (app) => {
 
   self.parseAutoBatt = (data) => {
     const groups = data.split('|')
+    const imei = groups[0]
     const batt = groups[2].split(',')
 
     return {
       mode: 'auto-batt',
       device: data,
+      imei: imei,
       position: self.createEmptyPosition(batt)
     }
   }
@@ -100,12 +115,26 @@ module.exports = (app) => {
   self.parseTcpBatt = (data) => {
     const groups = data.split('|')
     const batt = groups[1].split(',')
+    const gsm = groups[1]
 
     return {
       mode: 'tcp',
       device: null,
       raw: data,
-      position: self.createEmptyPosition(batt)
+      position: self.createEmptyPosition(batt, gsm)
+    }
+  }
+
+  self.parseTcpBattVSYS = (data) => {
+    const groups = data.split('|')
+    const batt = groups[1].split(',')
+    const gsm = groups[0].split(',')[1]
+
+    return {
+      mode: 'tcp',
+      device: null,
+      raw: data,
+      position: self.createEmptyPosition(batt, gsm)
     }
   }
 
@@ -148,6 +177,7 @@ module.exports = (app) => {
         alt: position[4],
         battery: parseInt(battery[0], 10),
         extbattery: parseInt(battery[1], 10),
+        vsys: parseInt(battery[2], 10) || 0,
         raw: `${position.join(',')}|${battery.join(',')}`,
         cog: parseInt(position[6], 10),
         gsm: parseInt(position[9], 10),
@@ -159,7 +189,7 @@ module.exports = (app) => {
     }
   }
 
-  self.createEmptyPosition = (batt) => {
+  self.createEmptyPosition = (batt, gsm = 0) => {
     return {
       _id: shortid.generate(),
       _device: null,
@@ -169,9 +199,10 @@ module.exports = (app) => {
         alt: 0,
         battery: batt[0],
         extbattery: batt[1],
+        vsys: batt[2] || 0,
         raw: 0,
         cog: 0,
-        gsm: 0,
+        gsm: gsm,
         gps: 0,
         sats: 0,
         loc: [0, 0],
