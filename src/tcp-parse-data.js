@@ -23,7 +23,7 @@ module.exports = (app) => {
   // 0|5000,38694
   regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
 
-  0,12|5000,38694,0 // incluye GSM y VSYS
+  // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   regex.isAck = /ack/

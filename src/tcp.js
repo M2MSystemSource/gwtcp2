@@ -79,10 +79,8 @@ module.exports = (app) => {
     socket.imei = imei
 
     if (clients[imei]) {
-      clients[imei].socket.setTimeout(0)
       delete clients[imei].socket
       clients[imei].socket = socket
-      clients[imei].socket.setTimeout(TIMEOUT)
     } else {
       clients[imei] = clients[imei] || {}
       clients[imei].socket = socket
