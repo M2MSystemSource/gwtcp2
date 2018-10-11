@@ -19,6 +19,7 @@ module.exports = (app) => {
      */
     const sentResponse = () => {
       client.waitingAck = null
+      client.cmd = null
       app.off(eventName)
       res.json(result)
     }
@@ -63,12 +64,10 @@ module.exports = (app) => {
       sentResponse()
     }, 10000)
 
-    // que zeus nos pille confesaos'
-    app.tcp.transmitCmd(deviceId, cmdId, cmd)
+    app.tcp.addCmd(client, cmdId, cmd)
   })
 
   http.get('/alive/:deviceId', (req, res) => {
-
   })
 
   http.listen(app.conf.httpPort, () => console.log(`- HTTP on port ${app.conf.httpPort} -`))

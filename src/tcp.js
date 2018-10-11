@@ -32,15 +32,32 @@ module.exports = (app) => {
       }
 
       switch (position.mode) {
-        case 'greeting': processGreetings(position, socket); break
-        case 'auto': processAuto(position, socket); break
-        case 'auto-batt': processAuto(position, socket); break
-        case 'tcp': processTcp(position, socket); break
-        case 'tcp-batt': processTcp(position, socket); break
-        case 'ack': processAck(socket); break
-        case 'ko': processKo(socket); break
-        case 'alive': processAlive(socket); break
-        default: socket.destroy()
+        case 'greeting':
+          processGreetings(position, socket)
+          break
+        case 'auto':
+          processAuto(position, socket)
+          break
+        case 'auto-batt':
+          processAuto(position, socket)
+          break
+        case 'tcp':
+          processTcp(position, socket)
+          break
+        case 'tcp-batt':
+          processTcp(position, socket)
+          break
+        case 'ack':
+          processAck(socket)
+          break
+        case 'ko':
+          processKo(socket)
+          break
+        case 'alive':
+          processAlive(socket)
+          break
+        default:
+          socket.destroy()
       }
     })
 
@@ -114,36 +131,29 @@ module.exports = (app) => {
     }
   }
 
-  self.transmitCmd = (deviceId, cmdId, cmd) => {
-    if (!app.tcp.isAlive(deviceId)) {
-      console.log('Fail writting to the socket')
-      return false
-    }
-
-    const client = app.tcp.getClient(deviceId)
-    if (!client) {
-      console.log('Not client found on this node')
-      return false
-    }
-
-    console.log('CLIENT FOUND!, writting command', cmd)
-    client.waitingAck = cmdId
-    try {
-      client.socket.write(cmd)
-    } catch (e) {
-      console.log('[ERR] socket write fail', e)
-      app.tcp.closeSocket(deviceId)
-      return false
-    }
-
-    return true
-  }
-
-  self.addCmd = (imei, cmdId, cmd) => {
-    const client = clients[imei]
-    if (!client) return
+  self.addCmd = (client, cmdId, cmd) => {
     client.waitingAck = true
     client.cmd = {cmdId, cmd}
+  }
+
+  self.hasCmd = (client) => {
+    if (client.waitingAck && client.cmd) {
+      return true
+    }
+    return false
+  }
+
+  self.transmitCmd = (client) => {
+    if (!self.hasCmd(client)) return
+
+    try {
+      client.socket.write(client.cmd.cmd)
+      return true
+    } catch (e) {
+      console.log('[ERR] socket write fail', e)
+      app.tcp.closeSocket(client.socket.imei)
+      return false
+    }
   }
 
   /**
@@ -198,14 +208,14 @@ module.exports = (app) => {
     self.saveSocket(position.imei, socket)
     self.savePosition(position.imei, position.position)
 
-    setTimeout(() => {
-      socket.write('#IO6|ON$\n')
-    }, 1000)
-
     app.io.local.emit('gwtcp2/position', position)
     app.cmd.check(position.imei, socket, (err) => {
       if (err) return console.log('[ERR] cmd.check', err)
     })
+
+    const client = clients[socket.imei]
+    if (!client) return
+    self.transmitCmd(client)
   }
 
   const processAck = (socket) => {
@@ -215,8 +225,7 @@ module.exports = (app) => {
 
     if (client.waitingAck) {
       console.log('processACK OK')
-      app.emit('ack-' + client.waitingAck)
-      client.waitingAck = null
+      app.emit('ack-' + client.cmd.cmdId)
     }
   }
 
@@ -226,6 +235,10 @@ module.exports = (app) => {
 
   const processAlive = (socket) => {
     app.io.local.emit('gwtcp2/alive', {device: socket.imei})
+
+    const client = clients[socket.imei]
+    if (!client) return
+    self.transmitCmd(client)
   }
 
   const validateImeiOrCloseTcp = (imei, socket) => {
