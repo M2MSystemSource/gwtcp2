@@ -1,7 +1,7 @@
 const net = require('net')
 const debug = require('debug')('gwtcp2:tcp')
 const clients = {}
-const TIMEOUT = 1000 * 30
+const cmdsWaiting = {}
 
 module.exports = (app) => {
   const self = {}
@@ -10,9 +10,7 @@ module.exports = (app) => {
   self.eachClient = (cb) => Object.keys(clients).forEach((imei) => cb(imei, clients[imei]))
 
   net.createServer((socket) => {
-    socket.setTimeout(TIMEOUT)
-
-    console.log('')
+    console.log('--')
     debug('new connection: ' + socket.remoteAddress + ':' + socket.remotePort)
 
     socket.on('data', (rawData) => {
@@ -41,6 +39,7 @@ module.exports = (app) => {
         case 'tcp-batt': processTcp(position, socket); break
         case 'ack': processAck(socket); break
         case 'ko': processKo(socket); break
+        case 'alive': processAlive(socket); break
         default: socket.destroy()
       }
     })
@@ -140,6 +139,13 @@ module.exports = (app) => {
     return true
   }
 
+  self.addCmd = (imei, cmdId, cmd) => {
+    const client = clients[imei]
+    if (!client) return
+    client.waitingAck = true
+    client.cmd = {cmdId, cmd}
+  }
+
   /**
    * @param {Object} position
    * @param {NetClient} socket
@@ -191,6 +197,11 @@ module.exports = (app) => {
 
     self.saveSocket(position.imei, socket)
     self.savePosition(position.imei, position.position)
+
+    setTimeout(() => {
+      socket.write('#IO6|ON$\n')
+    }, 1000)
+
     app.io.local.emit('gwtcp2/position', position)
     app.cmd.check(position.imei, socket, (err) => {
       if (err) return console.log('[ERR] cmd.check', err)
@@ -211,6 +222,10 @@ module.exports = (app) => {
 
   const processKo = (socket) => {
     app.io.local.emit('gwtcp2/fail', {device: socket.imei})
+  }
+
+  const processAlive = (socket) => {
+    app.io.local.emit('gwtcp2/alive', {device: socket.imei})
   }
 
   const validateImeiOrCloseTcp = (imei, socket) => {

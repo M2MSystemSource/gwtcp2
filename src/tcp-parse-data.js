@@ -9,10 +9,10 @@ module.exports = (app) => {
   regex.isGreeting = /^8[0-9]{14}\|(1|2)$/
 
   // 867857039426874|1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|10208,38694
-  regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,4},[0-9]{1,5}$/
+  regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,4},[0-9]{1,5},[0-9]{1,5}$/
 
   // 867857039426874|0|5000,38694
-  regex.isAutoBatt = /^8[0-9]{14}\|0\|[0-9]{1,5},[0-9]{1,5}$/
+  regex.isAutoBatt = /^8[0-9]{14}\|0\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   // 1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|4129,38694
   regex.isTcp = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5}$/
@@ -26,7 +26,8 @@ module.exports = (app) => {
   // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
-  regex.isAck = /ack/
+  regex.isWaiting = /^ñ$/
+  regex.isAck = /^ack\|(0|1)$/
   regex.isFail = /ko/
 
   /**
@@ -48,8 +49,10 @@ module.exports = (app) => {
     else if (regex.isTcp.test(data)) return self.parseTcp(data)
     else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
 
-    else if (data === 'ack') return self.parseAck(data)
+    else if (regex.isWaiting.test(data)) return self.parseWaiting()
+    else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ko') return self.parseFail(data)
+    else if (data === '%') return self.parseAlive(data)
 
     else {
       debug('regex big fail!')
@@ -138,17 +141,32 @@ module.exports = (app) => {
     }
   }
 
+  self.parseWaiting = (data) => {
+    console.log('PARSE WAITING!!!')
+    return {
+      mode: 'waiting'
+    }
+  }
+
   self.parseAck = (data) => {
-    if (data === 'ack') {
-      return {
-        mode: 'ack'
-      }
+    const p = data.split('|')
+    const ioStatus = p[1]
+    debug('IOSTATUS: ', ioStatus)
+
+    return {
+      mode: 'ack'
     }
   }
 
   self.parseFail = (data) => {
     return {
       mode: 'ko'
+    }
+  }
+
+  self.parseAlive = (data) => {
+    return {
+      mode: 'alive'
     }
   }
 

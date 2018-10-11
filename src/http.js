@@ -61,7 +61,7 @@ module.exports = (app) => {
     ackTimeout = setTimeout(() => {
       app.off(eventName)
       sentResponse()
-    }, 5000)
+    }, 10000)
 
     // que zeus nos pille confesaos'
     app.tcp.transmitCmd(deviceId, cmdId, cmd)
