@@ -39,21 +39,17 @@ module.exports = (app) => {
    */
   self.parse = (data) => {
     if (regex.isGreeting.test(data)) return self.parseGreeting(data)
-
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
-
     else if (regex.isTcpVSYS.test(data)) return self.parseTcp(data)
     else if (regex.isTcpBattVSYS.test(data)) return self.parseTcpBattVSYS(data)
-
     else if (regex.isTcp.test(data)) return self.parseTcp(data)
     else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
-
     else if (regex.isWaiting.test(data)) return self.parseWaiting()
     else if (regex.isAck.test(data)) return self.parseAck(data)
+    else if (data === 'ack') return self.parseAck(data)
     else if (data === 'ko') return self.parseFail(data)
     else if (data === '%') return self.parseAlive(data)
-
     else {
       debug('regex big fail!')
       return null
@@ -150,7 +146,7 @@ module.exports = (app) => {
 
   self.parseAck = (data) => {
     const p = data.split('|')
-    const ioStatus = p[1]
+    const ioStatus = p[1] || 'NO IO'
     debug('IOSTATUS: ', ioStatus)
 
     return {

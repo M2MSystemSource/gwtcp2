@@ -1,7 +1,6 @@
 const net = require('net')
 const debug = require('debug')('gwtcp2:tcp')
 const clients = {}
-const cmdsWaiting = {}
 
 module.exports = (app) => {
   const self = {}
@@ -132,8 +131,9 @@ module.exports = (app) => {
   }
 
   self.addCmd = (client, cmdId, cmd) => {
+    console.log('addCmd 2')
     client.waitingAck = true
-    client.cmd = {cmdId, cmd}
+    client.cmd = {cmdId, cmd, sent: false}
   }
 
   self.hasCmd = (client) => {
@@ -144,9 +144,17 @@ module.exports = (app) => {
   }
 
   self.transmitCmd = (client) => {
-    if (!self.hasCmd(client)) return
+    console.log('TESTE TRANSMIT')
+    if (!self.hasCmd(client)) {
+      console.log('NO COMMAND')
+      return
+    }
+
+    console.log('HAS COMMAND')
 
     try {
+      client.cmd.sent = true
+      console.log('SOCKET WRITE', client.cmd.cmd)
       client.socket.write(client.cmd.cmd)
       return true
     } catch (e) {
@@ -154,6 +162,46 @@ module.exports = (app) => {
       app.tcp.closeSocket(client.socket.imei)
       return false
     }
+  }
+  }
+
+  self.transmitCmd2 = (client) => {
+    if (!self.hasCmd(client)) {
+      console.log('NO COMMAND')
+      return
+    }
+
+    console.log('HAS COMMAND')
+
+    try {
+      client.cmd.sent = true
+      console.log('SOCKET WRITE', client.cmd.cmd)
+      client.socket.write(client.cmd.cmd)
+      return true
+    } catch (e) {
+      console.log('[ERR] socket write fail', e)
+      app.tcp.closeSocket(client.socket.imei)
+      return false
+    }
+  }
+
+  self.cancelCmd = (client) => {
+    try {
+      if (client.cmd.sent === false) {
+        self.deleteCmd(client)
+        return true
+      }
+    } catch (e) {
+      console.log('cancelCmd', e)
+    }
+
+    return false
+  }
+
+  self.deleteCmd = (client) => {
+    client.waitingAck = false
+    client.cmd = null
+    return true
   }
 
   /**
@@ -213,9 +261,10 @@ module.exports = (app) => {
       if (err) return console.log('[ERR] cmd.check', err)
     })
 
-    const client = clients[socket.imei]
-    if (!client) return
-    self.transmitCmd(client)
+    console.log('transmit 1')
+    setTimeout(() => {
+      self.transmitCmd(client)
+    }, 1000)
   }
 
   const processAck = (socket) => {
@@ -238,7 +287,10 @@ module.exports = (app) => {
 
     const client = clients[socket.imei]
     if (!client) return
-    self.transmitCmd(client)
+    console.log('transmit 2')
+    setTimeout(() => {
+      self.transmitCmd(client)
+    }, 1000)
   }
 
   const validateImeiOrCloseTcp = (imei, socket) => {
