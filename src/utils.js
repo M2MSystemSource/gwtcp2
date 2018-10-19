@@ -1,5 +1,3 @@
-const debug = require('debug')('gwtcp2:utils')
-
 module.exports = (app) => {
   const self = {}
 

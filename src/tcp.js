@@ -9,12 +9,15 @@ module.exports = (app) => {
   self.eachClient = (cb) => Object.keys(clients).forEach((imei) => cb(imei, clients[imei]))
 
   net.createServer((socket) => {
-    console.log('--')
     debug('new connection: ' + socket.remoteAddress + ':' + socket.remotePort)
 
     socket.on('data', (rawData) => {
+      console.log('')
       const data = rawData.toString('utf8')
       const imei = (socket.imei) ? socket.imei : ''
+
+      // enviamos los datos recibidos al parser, este nos dirá que tenemos que
+      // hacer con ellos. Hay multiples opciones
       const position = app.data.parse(data.toString('utf8'))
       if (!position) {
         debug('Invalid incoming data')
@@ -27,46 +30,27 @@ module.exports = (app) => {
       if (device) {
         debug('>', imei, device.name, data)
       } else {
-        debug('>', imei, data)
+        debug('> UNKNOW', imei, data)
       }
 
       switch (position.mode) {
-        case 'greeting':
-          processGreetings(position, socket)
-          break
-        case 'auto':
-          processAuto(position, socket)
-          break
-        case 'auto-batt':
-          processAuto(position, socket)
-          break
-        case 'tcp':
-          processTcp(position, socket)
-          break
-        case 'tcp-batt':
-          processTcp(position, socket)
-          break
-        case 'ack':
-          processAck(socket)
-          break
-        case 'ko':
-          processKo(socket)
-          break
-        case 'alive':
-          processAlive(socket)
-          break
+        case 'greeting': processGreetings(position, socket); break
+        case 'auto': processAuto(position, socket); break
+        case 'auto-batt': processAuto(position, socket); break
+        case 'tcp': processTcp(position, socket); break
+        case 'tcp-batt': processTcp(position, socket); break
+        case 'ack': processAck(socket); break
+        case 'alive': processAlive(socket); break
         default:
           socket.destroy()
       }
     })
 
-    // Add a 'close' event handler to this instance of socket
     socket.on('close', (data) => {
       debug('CLOSED: ' + socket.remoteAddress + ' ' + socket.remotePort)
       self.closeSocket()
     })
 
-    // Add a 'close' event handler to this instance of socket
     socket.on('end', (data) => {
       debug('END: ' + socket.remoteAddress + ' ' + socket.remotePort)
       self.closeSocket()
@@ -109,33 +93,49 @@ module.exports = (app) => {
     })
   }
 
-  self.isAlive = (imei, cb = function () {}) => {
-    const client = clients[imei]
+  /**
+   * Comprueba si un dispositivo está online. Veririfica el estado del socket
+   * y realiza una comprobación de fecha de la última conexión realizada, donde
+   * se espera que el dispositivo se haya conecto en los útlimos 15 segundos.
+   *
+   * @param {*} deviceId
+   * @param {*} cb
+   */
+  self.isAlive = (deviceId) => {
+    const client = clients[deviceId]
     if (!client) return false
+    if (!client.socket) return false
+    if (client.socket.destroyed) return false
 
-    if (!client.socket) {
+    const now = Date.now()
+    if ((now - client.lasConnection) > 12) {
+      // hace más de 15 segundos que no envía nada... lo damos por desconectado
       return false
     }
 
-    if (client.socket.destroyed) {
-      return false
-    }
-
-    try {
-      client.socket.write('\n', cb)
-      return true
-    } catch (e) {
-      console.log('[Err] tcp.isAlive', e)
-      return false
-    }
+    return true
   }
 
+  /**
+   * Añade un comando a un dispositivo. Se transmitirá la próxima vez que el
+   * dispositivo envíe un dato, bien sea un Alive o una posición
+   *
+   * @param {Object} client
+   * @param {String} cmdId
+   * @param {String} cmd
+   */
   self.addCmd = (client, cmdId, cmd) => {
-    console.log('addCmd 2')
     client.waitingAck = true
+    // Guardamos los datos del comando, incluyendo la propiedad `sent` que indica
+    // si el comando ha sido enviado (por defecto false)
     client.cmd = {cmdId, cmd, sent: false}
   }
 
+  /**
+   * Comprueba si hay un comando en espera de ser enviado a `client`
+   *
+   * @param {Object} client
+   */
   self.hasCmd = (client) => {
     if (client.waitingAck && client.cmd) {
       return true
@@ -143,68 +143,50 @@ module.exports = (app) => {
     return false
   }
 
+  /**
+   * Transmite un comando. Utiliza el método `hasCmd` para comprobar si tiene
+   * algo que enviar. Se cerrará el socket si se produce un error al realizar
+   * la escritura del comando con socket.write().
+   *
+   * @param {Object} client
+   * @return {Boolean}
+   */
   self.transmitCmd = (client) => {
-    console.log('TESTE TRANSMIT')
-    if (!self.hasCmd(client)) {
-      console.log('NO COMMAND')
-      return
-    }
-
-    console.log('HAS COMMAND')
+    if (!self.hasCmd(client)) return false
 
     try {
       client.cmd.sent = true
-      console.log('SOCKET WRITE', client.cmd.cmd)
       client.socket.write(client.cmd.cmd)
       return true
     } catch (e) {
       console.log('[ERR] socket write fail', e)
-      app.tcp.closeSocket(client.socket.imei)
-      return false
-    }
-  }
-  }
-
-  self.transmitCmd2 = (client) => {
-    if (!self.hasCmd(client)) {
-      console.log('NO COMMAND')
-      return
-    }
-
-    console.log('HAS COMMAND')
-
-    try {
-      client.cmd.sent = true
-      console.log('SOCKET WRITE', client.cmd.cmd)
-      client.socket.write(client.cmd.cmd)
-      return true
-    } catch (e) {
-      console.log('[ERR] socket write fail', e)
-      app.tcp.closeSocket(client.socket.imei)
+      app.tcp.closeSocket(client.socket.deviceId)
       return false
     }
   }
 
+  /**
+   * Permite cancelar el envío de un comando en espera de ser enviado.
+   * Comprobará que el `client.cmd.snet` sea `false`, en caso de `true` el
+   * comando ya ha sido enviado y no puede cancelarse.
+   *
+   * @param {Object} client
+   * @return {Boolean}
+   */
   self.cancelCmd = (client) => {
-    try {
-      if (client.cmd.sent === false) {
-        self.deleteCmd(client)
-        return true
-      }
-    } catch (e) {
-      console.log('cancelCmd', e)
+    if (client.cmd.sent === false) {
+      client.waitingAck = false
+      client.cmd = null
+      return true
     }
 
     return false
   }
 
-  self.deleteCmd = (client) => {
-    client.waitingAck = false
-    client.cmd = null
-    return true
-  }
-
   /**
+   * El gretting es el mensaje de bienvenida del dispositivo. Nos indicará cual
+   * es su deviceId (generalmente el IMEI) y el modo de conexión, auto o tcp.
+   *
    * @param {Object} position
    * @param {NetClient} socket
    */
@@ -213,7 +195,7 @@ module.exports = (app) => {
 
     const device = app.cache.get(position.imei)
     if (!device) {
-      socket.write('ko-001\n')
+      socket.write('ko\n')
       self.closeSocket(position.imei, socket)
     }
 
@@ -257,42 +239,45 @@ module.exports = (app) => {
     self.savePosition(position.imei, position.position)
 
     app.io.local.emit('gwtcp2/position', position)
-    app.cmd.check(position.imei, socket, (err) => {
-      if (err) return console.log('[ERR] cmd.check', err)
-    })
 
-    console.log('transmit 1')
     setTimeout(() => {
       self.transmitCmd(client)
     }, 1000)
   }
 
   const processAck = (socket) => {
-    console.log('processAck')
     const client = clients[socket.imei]
     if (!client) return
 
     if (client.waitingAck) {
-      console.log('processACK OK')
       app.emit('ack-' + client.cmd.cmdId)
     }
   }
 
-  const processKo = (socket) => {
-    app.io.local.emit('gwtcp2/fail', {device: socket.imei})
-  }
-
+  /**
+   * Comunica a watcher.io que un dispositivo está vivo.
+   *
+   * @param {Net.Socket} socket
+   */
   const processAlive = (socket) => {
-    app.io.local.emit('gwtcp2/alive', {device: socket.imei})
-
     const client = clients[socket.imei]
-    if (!client) return
-    console.log('transmit 2')
+    if (!client) return self.closeSocket(null, socket)
+
     setTimeout(() => {
       self.transmitCmd(client)
     }, 1000)
   }
 
+  /**
+   * Comprueba si un imei tiene permitido conectarse al servidor. Básicamente
+   * se podrán conectar aquellos clientes que existan en la caché de app.cache.
+   * Esta caché se crea cada 5 minutos realizando una consulta a Mongo. Serán
+   * válidos los dispositivos que tengan la propiedad `version = 2`
+   *
+   * @param {String} imei
+   * @param {net.Socket} socket
+   * @return {Boolean}
+   */
   const validateImeiOrCloseTcp = (imei, socket) => {
     const client = app.cache.get(imei)
     if (!client) {
@@ -300,7 +285,7 @@ module.exports = (app) => {
       return false
     }
 
-    return client
+    return true
   }
 
   console.log(`- TCP on port ${app.conf.tcpPort} -`)

@@ -68,8 +68,10 @@ module.exports = (app) => {
       sentResponse()
     })
 
-    // cabe la posibilidad de que el ack nunca se produzca establecemos un timeout
+    // cabe la posibilidad de que el ack nunca se produzca
+    // establecemos un timeout
     ackTimeout = setTimeout(() => {
+      app.cancelCmd(client)
       app.off(eventName)
       sentResponse()
     }, 15000)
