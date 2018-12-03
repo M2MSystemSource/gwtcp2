@@ -15,7 +15,9 @@ module.exports = (app) => {
     const tracking = app.db.collection('trk_' + device._account)
 
     parallel([
+      // añadimos la posición a colección de tracking
       (callback) => tracking.insertOne(position, callback),
+      // actualizamos el last data del device
       (callback) => {
         let tracking = position
 
@@ -34,7 +36,8 @@ module.exports = (app) => {
       }
     ], (err, result) => {
       if (err) return debug('[ERR] save position', err)
-      app.io.local.emit('gwtcp2/position', {position, customerId: device._account})
+      // app.io.local.emit('gwtcp2/position', {position, customerId: device._account})
+      app.watcher.post(position)
     })
   }
 

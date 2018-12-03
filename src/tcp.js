@@ -12,7 +12,6 @@ module.exports = (app) => {
     debug('new connection: ' + socket.remoteAddress + ':' + socket.remotePort)
 
     socket.on('data', (rawData) => {
-      console.log('')
       const data = rawData.toString('utf8')
       const imei = (socket.imei) ? socket.imei : ''
 
@@ -20,7 +19,7 @@ module.exports = (app) => {
       // hacer con ellos. Hay multiples opciones
       const position = app.data.parse(data.toString('utf8'))
       if (!position) {
-        debug('Invalid incoming data')
+        debug('Invalid incoming data ->')
         debug(data)
         socket.destroy()
         return null
@@ -63,6 +62,7 @@ module.exports = (app) => {
   }).listen(app.conf.tcpPort)
 
   self.closeSocket = (imei, socket) => {
+    console.log('closeSocket!', imei)
     if (socket) socket.destroy()
     if (!imei) return
 
@@ -217,7 +217,7 @@ module.exports = (app) => {
 
   const processAuto = (position, socket) => {
     if (!validateImeiOrCloseTcp(position.imei)) {
-      console.log('BIF FAIL! invalid imei antes de savePosition!!!')
+      console.log('BIG FAIL! invalid imei antes de savePosition!!!')
       return
     }
 

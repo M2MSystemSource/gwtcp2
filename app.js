@@ -12,6 +12,7 @@ require(path.join(__dirname, 'src/db'))(app, () => {
   require(path.join(__dirname, 'src/tcp-parse-data'))(app)
   require(path.join(__dirname, 'src/tcp-send-cmd'))(app)
   require(path.join(__dirname, 'src/utils'))(app)
+  require(path.join(__dirname, 'src/watcher-client'))(app)
   require(path.join(__dirname, 'src/insert-position'))(app)
   require(path.join(__dirname, 'src/tcp'))(app)
   require(path.join(__dirname, 'src/http'))(app)
