@@ -157,10 +157,18 @@ module.exports = (app) => {
     const groups = data.split('|')
 
     let sensing = {}
+    let imei
+    let sensorsData
+    let sensors
 
-    const imei = groups[0]
-    const sensorsData = groups[2]
-    const sensors = sensorsData.split('$')
+    try {
+      imei = groups[0]
+      sensorsData = groups[2]
+      sensors = sensorsData.split('$')
+    } catch (e) {
+      console.log('fail sensors', e)
+      return {}
+    }
 
     sensors.forEach((sensorRaw) => {
                              // trim
