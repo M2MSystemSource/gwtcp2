@@ -60,7 +60,7 @@ module.exports = (app) => {
       console.log('[ERR]', err)
       console.log('[ERR] code', err.code)
     })
-  }).listen(app.conf.tcpPort, '127.0.0.1')
+  }).listen(app.conf.tcpPort)
 
   self.closeSocket = (imei, socket) => {
     if (socket) socket.destroy()
