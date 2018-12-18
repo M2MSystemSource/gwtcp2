@@ -74,7 +74,7 @@ module.exports = (app) => {
       app.tcp.cancelCmd(client)
       app.off(eventName)
       sentResponse()
-    }, 15000)
+    }, 18000)
 
     app.tcp.addCmd(client, cmdId, cmd)
     // app.tcp.transmitCmd(client)

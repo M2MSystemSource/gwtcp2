@@ -38,8 +38,9 @@ module.exports = (app) => {
         case 'auto-batt': processAuto(position, socket); break
         case 'tcp': processTcp(position, socket); break
         case 'tcp-batt': processTcp(position, socket); break
-        case 'ack': processAck(socket); break
-        case 'alive': processAlive(socket); break
+        case 'ack': processAck(position, socket); break
+        case 'alive': processAlive(position, socket); break
+        case 'sensing': processSensing(position, socket); break
         default:
           socket.destroy()
       }
@@ -47,7 +48,7 @@ module.exports = (app) => {
 
     socket.on('close', (data) => {
       debug('CLOSED: ' + socket.remoteAddress + ' ' + socket.remotePort)
-      self.closeSocket()
+      self.closeSocket(socket.imei, socket)
     })
 
     socket.on('end', (data) => {
@@ -59,12 +60,13 @@ module.exports = (app) => {
       console.log('[ERR]', err)
       console.log('[ERR] code', err.code)
     })
-  }).listen(app.conf.tcpPort)
+  }).listen(app.conf.tcpPort, '127.0.0.1')
 
   self.closeSocket = (imei, socket) => {
-    console.log('closeSocket!', imei)
     if (socket) socket.destroy()
     if (!imei) return
+
+    app.setIOStatus(imei, 0)
 
     if (clients[imei] && clients[imei].socket) {
       clients[imei].socket.destroy()
@@ -108,7 +110,7 @@ module.exports = (app) => {
     if (client.socket.destroyed) return false
 
     const now = Date.now()
-    if ((now - client.lasConnection) > 12) {
+    if ((now - client.lastConnection) > 12) {
       // hace más de 15 segundos que no envía nada... lo damos por desconectado
       return false
     }
@@ -202,6 +204,8 @@ module.exports = (app) => {
     // comprobamos si hay algún comando para enviar
     app.cmd.check(position.imei, socket, (err, closeTcp) => {
       if (err) return console.log('[ERR] cmd check', err)
+      app.setIOStatus(position.imei, -1)
+
       if (!position.keepAlive) {
         self.closeSocket(position.imei, socket)
       } else {
@@ -229,6 +233,15 @@ module.exports = (app) => {
     })
   }
 
+  const processSensing = (sensing, socket) => {
+    if (!validateImeiOrCloseTcp(sensing.imei)) {
+      console.log('BIG FAIL! invalid imei antes de savePosition!!!')
+      return
+    }
+
+    console.log('sensing', sensing)
+  }
+
   const processTcp = (position, socket) => {
     const client = clients[socket.imei]
     if (!client) return self.closeSocket(socket.imei, socket)
@@ -245,9 +258,12 @@ module.exports = (app) => {
     }, 1000)
   }
 
-  const processAck = (socket) => {
+  const processAck = (position, socket) => {
     const client = clients[socket.imei]
     if (!client) return
+
+    console.log('set status', socket.imei, position.iostatus)
+    app.setIOStatus(socket.imei, position.iostatus)
 
     if (client.waitingAck) {
       app.emit('ack-' + client.cmd.cmdId)
@@ -259,9 +275,14 @@ module.exports = (app) => {
    *
    * @param {Net.Socket} socket
    */
-  const processAlive = (socket) => {
+  const processAlive = (position, socket) => {
     const client = clients[socket.imei]
     if (!client) return self.closeSocket(null, socket)
+    position.imei = socket.imei
+
+    if (position.io6Status !== null) {
+      app.setIOStatus(position.imei, position.io6Status)
+    }
 
     setTimeout(() => {
       self.transmitCmd(client)

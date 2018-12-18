@@ -23,6 +23,9 @@ module.exports = (app) => {
   // 0|5000,38694
   regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
 
+  // is sensing auto
+  regex.isSensing = /^1,[0-9\-,.]*\|s|[0-9a-zA-Z.,;:\-_]$/
+
   // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
@@ -37,7 +40,11 @@ module.exports = (app) => {
    * @param {String} data
    */
   self.parse = (data) => {
+    data = data.trim()
+
     if (data === '%') return self.parseAlive(data)
+    if (data == '0') return self.parseAlive(data)
+    if (data == '1') return self.parseAlive(data)
     else if (regex.isTcpVSYS.test(data)) return self.parseTcp(data)
     else if (regex.isTcpBattVSYS.test(data)) return self.parseTcpBattVSYS(data)
     else if (regex.isTcp.test(data)) return self.parseTcp(data)
@@ -45,6 +52,7 @@ module.exports = (app) => {
     else if (regex.isGreeting.test(data)) return self.parseGreeting(data)
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
+    else if (regex.isSensing.test(data)) return self.parseSensing(data)
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)
     else {
@@ -136,17 +144,52 @@ module.exports = (app) => {
 
   self.parseAck = (data) => {
     const p = data.split('|')
-    const iostatus = p[1] || 'NO IO'
+    const iostatus = p[1] || -1
     debug('IOSTATUS: ', iostatus)
 
     return {
-      iostatus,
+      iostatus: parseInt(iostatus),
       mode: 'ack'
     }
   }
 
-  self.parseAlive = (data) => {
+  self.parseSensing = (data) => {
+    const groups = data.split('|')
+
+    let sensing = {}
+
+    const imei = groups[0]
+    const sensorsData = groups[2]
+    const sensors = sensorsData.split('$')
+
+    sensors.forEach((sensorRaw) => {
+                             // trim
+      let sensor = sensorRaw.replace(/^[^A-Za-z0-9]*|[^A-Z-a-z0-9]*$/gi, '').split(':')
+      let sensorName = sensor[0]
+      let sensorValue = sensor[1]
+
+      if (app.sensors.hasOwnProperty(sensorName)) {
+        sensing[sensorName] = app.sensors[sensorName](sensorValue)
+      }
+    })
+
     return {
+      imei,
+      mode: 'sensing',
+      device: imei,
+      raw: data,
+      sensing: self.createSensing(sensing)
+    }
+  }
+
+  self.parseAlive = (data) => {
+    let io6Status = -1
+    if (data !== '%' && !isNaN(data)) {
+      io6Status = parseInt(data)
+    }
+
+    return {
+      io6Status,
       mode: 'alive'
     }
   }
@@ -209,6 +252,18 @@ module.exports = (app) => {
       }
     }
   }
+
+  self.createSensing = (sensing) => {
+    return {
+      _id: shortid.generate(),
+      _device: null,
+      stime: Date.now(),
+      data: sensing
+    }
+  }
+
+  // var x = '867857039426874|s|temps:29.23;xxx;12.29;$temp:29.3'
+  // app.on('sensors-ready', () => test(x))
 
   app.data = self
 }
