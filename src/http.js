@@ -10,9 +10,11 @@ module.exports = (app) => {
    * Recibimos un comando para un dispositivo
    */
   http.post('/transmit-cmd/:deviceId', (req, res) => {
+
     const deviceId = req.params.deviceId
     const cmdId = req.body.cmdId
     const cmd = req.body.cmd
+    const cache = req.body.cache === 'ok'
     const eventName = 'ack-' + cmdId
     let ackTimeout // contendrá el timer que espera la picorespuesta del dispositivo
 
@@ -76,7 +78,7 @@ module.exports = (app) => {
       sentResponse()
     }, 18000)
 
-    app.tcp.addCmd(client, cmdId, cmd)
+    app.tcp.addCmd(client, cmdId, cmd, cache)
     // app.tcp.transmitCmd(client)
   })
 

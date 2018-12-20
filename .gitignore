@@ -2,3 +2,4 @@ node_modules
 src/conf.js
 deployment-config.json
 .vscode
+.push.settings.jsonc

@@ -8,6 +8,9 @@ module.exports = (app) => {
   // 867857039426874|1
   regex.isGreeting = /^8[0-9]{14}\|(1|2)$/
 
+  // 867857039426874|0.3.0
+  regex.isGreetingVersion = /^8[0-9]{14}\|[0-9.]{1,10}$/
+
   // 867857039426874|1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|10208,38694
   regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
@@ -24,7 +27,7 @@ module.exports = (app) => {
   regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
 
   // is sensing auto
-  regex.isSensing = /^1,[0-9\-,.]*\|s|[0-9a-zA-Z.,;:\-_]$/
+  regex.isSensing = /^1,[0-9\-,.]*\|s\|[0-9a-zA-Z.,;:\-_]*$/
 
   // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
@@ -49,26 +52,30 @@ module.exports = (app) => {
     else if (regex.isTcpBattVSYS.test(data)) return self.parseTcpBattVSYS(data)
     else if (regex.isTcp.test(data)) return self.parseTcp(data)
     else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
-    else if (regex.isGreeting.test(data)) return self.parseGreeting(data)
+    else if (regex.isGreeting.test(data)) return self.parseGreeting(data, false)
+    else if (regex.isGreetingVersion.test(data)) return self.parseGreeting(data, true)
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
-    else if (regex.isSensing.test(data)) return self.parseSensing(data)
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)
+    else if (regex.isSensing.test(data)) return self.parseSensing(data)
     else {
       debug('regex big fail!')
       return null
     }
   }
 
-  self.parseGreeting = (data) => {
+  self.parseGreeting = (data, hasVersion) => {
     // extraemos el ultimo caracter de la cadena de bienvenida. Esta cadena
     // suele tener el formato [IMEI]|1 o [IMEI]|0. El 1 indicaría que el dispositivo
     // está solicitando mantener el TCP abierto para comunicación bidireccional.
     // el 0 (o cualquier otra cosa) indica que no se requiere TCP abierto
     const keepAlive = parseInt(data.slice(-1), 10)
     debug('parse greeting', keepAlive, data)
+    let version = (hasVersion) ? data.split('|')[1] : null
+
     return {
+      version,
       mode: 'greeting',
       keepAlive: keepAlive === 1,
       imei: data.split('|')[0],
@@ -160,6 +167,8 @@ module.exports = (app) => {
     let imei
     let sensorsData
     let sensors
+
+    if (groups.length !== 3) return
 
     try {
       imei = groups[0]

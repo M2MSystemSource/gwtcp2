@@ -126,11 +126,14 @@ module.exports = (app) => {
    * @param {String} cmdId
    * @param {String} cmd
    */
-  self.addCmd = (client, cmdId, cmd) => {
+  self.addCmd = (client, cmdId, cmd, cache) => {
     client.waitingAck = true
-    // Guardamos los datos del comando, incluyendo la propiedad `sent` que indica
-    // si el comando ha sido enviado (por defecto false)
     client.cmd = {cmdId, cmd, sent: false}
+
+    if (cache === false) {
+      console.log('no cache, haya que vamos!!!')
+      self.transmitCmd(client)
+    }
   }
 
   /**
@@ -204,7 +207,7 @@ module.exports = (app) => {
     // comprobamos si hay algún comando para enviar
     app.cmd.check(position.imei, socket, (err, closeTcp) => {
       if (err) return console.log('[ERR] cmd check', err)
-      app.setIOStatus(position.imei, -1)
+      app.setIOStatus(position.imei, -1, position.version)
 
       if (!position.keepAlive) {
         self.closeSocket(position.imei, socket)
