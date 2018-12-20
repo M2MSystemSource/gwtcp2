@@ -284,7 +284,7 @@ module.exports = (app) => {
     position.imei = socket.imei
 
     if (position.io6Status !== null) {
-      app.setIOStatus(position.imei, position.io6Status)
+      app.setIOStatus(position.imei, position.io6Status, position.version)
     }
 
     setTimeout(() => {
