@@ -46,10 +46,8 @@ module.exports = {
   deploy: {
     production: {
       user: 'm2m',
-      host: {
-        host: '45.76.37.219',
-        port: '2222'
-      },
+      host: '45.76.37.219',
+      port: '2222',
       ref: 'origin/master',
       repo: 'git@github.com:M2MSystemSource/gwtcp2.git',
       path: '/var/m2m/gwtcp2',
