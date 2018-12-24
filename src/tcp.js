@@ -95,6 +95,12 @@ module.exports = (app) => {
     })
   }
 
+  self.saveSesing = (sensing) => {
+    app.sensing.insert(sensing, (err) => {
+      if (err) console.error('insert sensing', err)
+    })
+  }
+
   /**
    * Comprueba si un dispositivo está online. Veririfica el estado del socket
    * y realiza una comprobación de fecha de la última conexión realizada, donde
@@ -237,12 +243,13 @@ module.exports = (app) => {
   }
 
   const processSensing = (sensing, socket) => {
-    if (!validateImeiOrCloseTcp(sensing.imei)) {
+    if (!validateImeiOrCloseTcp(sensing._device)) {
       console.log('BIG FAIL! invalid imei antes de savePosition!!!')
       return
     }
 
-    console.log('sensing', sensing)
+    self.saveSesing(sensing)
+    socket.destroy()
   }
 
   const processTcp = (position, socket) => {
