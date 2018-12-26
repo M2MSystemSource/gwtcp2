@@ -32,6 +32,8 @@ module.exports = (app) => {
   // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
+  regex.isElectronobo = /^EN\|[0-9]*,[0-9]*$/
+
   regex.isAck = /^ack\|(0|1)$/
   regex.isFail = /ko/
 
@@ -59,7 +61,7 @@ module.exports = (app) => {
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
-    // else if (regex.isElectronovo.test(data)) return self.parseElectronvo(data)
+    else if (regex.isElectronobo.test(data)) return self.parseElectronobo(data)
     else {
       debug('regex big fail!')
       return null
@@ -206,14 +208,22 @@ module.exports = (app) => {
     }
   }
 
-  self.parseElectronvo = (data) => {
+  self.parseElectronobo = (data) => {
     let groups = data.split('|')
     let operation = groups[1].split(',')
     if (groups.length === 2 || operation.length === 2) {
-      let operationId = operation[0]
-      let litres = operation[1]
+      let operationId = operation[1]
+      let litres = operation[0]
       console.log(operationId, litres)
+
+      return {
+        operationId,
+        litres,
+        mode: 'electronobo'
+      }
     }
+
+    return null
   }
 
   self.parseAlive = (data) => {

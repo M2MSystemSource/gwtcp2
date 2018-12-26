@@ -41,6 +41,13 @@ module.exports = (app) => {
         case 'ack': processAck(position, socket); break
         case 'alive': processAlive(position, socket); break
         case 'sensing': processSensing(position, socket); break
+        case 'electronobo':
+          app.io.local.emit('gwtcp2/electronobo', {
+            operationId: position.operationId,
+            litres: position.litres
+          })
+          socket.write('1\n')
+          break
         default:
           socket.destroy()
       }
@@ -114,7 +121,6 @@ module.exports = (app) => {
     if (!client) return false
     if (!client.socket) return false
     if (client.socket.destroyed) return false
-
     const now = Date.now()
     if ((now - client.lastConnection) > 12) {
       // hace más de 15 segundos que no envía nada... lo damos por desconectado
@@ -137,7 +143,7 @@ module.exports = (app) => {
     client.cmd = {cmdId, cmd, sent: false}
 
     if (cache === false) {
-      console.log('no cache, haya que vamos!!!')
+      console.log('no cache, haya que vamos!', cmd)
       self.transmitCmd(client)
     }
   }
