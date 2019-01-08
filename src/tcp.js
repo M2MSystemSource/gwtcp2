@@ -212,6 +212,7 @@ module.exports = (app) => {
 
     const device = app.cache.get(position.imei)
     if (!device) {
+      debug('no device')
       socket.write('ko\n')
       self.closeSocket(position.imei, socket)
     }
@@ -223,6 +224,7 @@ module.exports = (app) => {
 
       if (!position.keepAlive) {
         self.closeSocket(position.imei, socket)
+        console.log('CLOSE SOCKET - NO KEEP ALIVE')
       } else {
         self.saveSocket(position.imei, socket)
         // notificamos que se ha realizado login
@@ -318,6 +320,7 @@ module.exports = (app) => {
   const validateImeiOrCloseTcp = (imei, socket) => {
     const client = app.cache.get(imei)
     if (!client) {
+      console.log('invalid imei')
       self.closeSocket(imei, socket)
       return false
     }

@@ -9,7 +9,7 @@ module.exports = (app) => {
   regex.isGreeting = /^8[0-9]{14}\|(1|2)$/
 
   // 867857039426874|0.3.0
-  regex.isGreetingVersion = /^8[0-9]{14}\|[0-9.]{1,10}$/
+  regex.isGreetingVersion = /^8[0-9]{14}\|[0-9a-zA-Z.]{1,10}$/
 
   // 867857039426874|1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|10208,38694
   regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
@@ -73,9 +73,14 @@ module.exports = (app) => {
     // suele tener el formato [IMEI]|1 o [IMEI]|0. El 1 indicaría que el dispositivo
     // está solicitando mantener el TCP abierto para comunicación bidireccional.
     // el 0 (o cualquier otra cosa) indica que no se requiere TCP abierto
-    const keepAlive = parseInt(data.slice(-1), 10)
+    let keepAlive = parseInt(data.slice(-1), 10)
     debug('parse greeting', keepAlive, data)
-    let version = (hasVersion) ? data.split('|')[1] : null
+    let version = null
+
+    if (hasVersion) {
+      version = data.split('|')[1]
+      keepAlive = 1
+    }
 
     return {
       version,
