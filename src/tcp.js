@@ -230,7 +230,6 @@ module.exports = (app) => {
     }
 
     self.savePosition(position.imei, position.position)
-    app.io.local.emit('gwtcp2/position', position)
     app.cmd.check(position.imei, socket, (err) => {
       if (err) return console.log('[ERR] cmd check', err)
       self.closeSocket(position.imei, socket)
