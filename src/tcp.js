@@ -41,6 +41,7 @@ module.exports = (app) => {
         case 'ack': processAck(position, socket); break
         case 'alive': processAlive(position, socket); break
         case 'sensing': processSensing(position, socket); break
+        case 'msg': processMsg(data, socket); break
         default:
           socket.destroy()
       }
@@ -243,6 +244,10 @@ module.exports = (app) => {
     }
 
     console.log('sensing', sensing)
+  }
+
+  const processMsg = (msg, socket) => {
+    console.log('MSG: ', msg.data)
   }
 
   const processTcp = (position, socket) => {

@@ -26,6 +26,9 @@ module.exports = (app) => {
   // 0|5000,38694
   regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
 
+  // msg|temp:2394$co2:22$
+  regex.isMsg = /^msg\|(.)*\$$/
+
   // is sensing auto
   regex.isSensing = /^1,[0-9\-,.]*\|s\|[0-9a-zA-Z.,;:\-_]*$/
 
@@ -56,6 +59,7 @@ module.exports = (app) => {
     else if (regex.isGreetingVersion.test(data)) return self.parseGreeting(data, true)
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
+    else if (regex.isMsg.test(data)) return self.parseMsg(data)
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
@@ -146,6 +150,14 @@ module.exports = (app) => {
       device: null,
       raw: data,
       position: self.createEmptyPosition(batt, gsm)
+    }
+  }
+
+  self.parseMsg = (data) => {
+    return {
+      mode: 'msg',
+      device: null,
+      raw: data
     }
   }
 
