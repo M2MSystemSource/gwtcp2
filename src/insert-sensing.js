@@ -5,7 +5,8 @@ module.exports = (app) => {
   const dbDevice = app.db.collection('devices')
   const self = {}
 
-  self.insert = (imei, sensing) => {
+  self.insert = (sensing) => {
+    const imei = sensing._device
     const device = app.cache.get(imei)
     if (!device) return
 
@@ -14,16 +15,23 @@ module.exports = (app) => {
     // de sensing)
     const Sensing = app.db.collection('sensing_' + device._account)
 
+    delete sensing.mode
+
     parallel([
       // añadimos la posición a colección de tracking
       (callback) => Sensing.insertOne(sensing, callback),
       // actualizamos el last data del device
       (callback) => {
-        const deviceSensing = {sensing: {
-          stime: Date.now(),
-          data: sensing.data
-        }}
-        dbDevice.updateOne({_id: imei}, {$set: {sensing: deviceSensing}}, callback)
+        const updateDate = {
+          $set: {
+            sensing: {
+              time: sensing.time,
+              data: sensing.data
+            }
+          }
+        }
+
+        dbDevice.updateOne({_id: imei}, updateDate, callback)
       }
     ], (err, result) => {
       if (err) return debug('[ERR] save sensing', err)

@@ -28,6 +28,7 @@ module.exports = (app) => {
           tracking['tracking.servertime'] = position.servertime
           tracking['tracking.data.battery'] = position.data.battery
           tracking['tracking.data.extbattery'] = position.data.extbattery
+          tracking['tracking.data.vsys'] = position.data.vsys
 
           dbDevice.updateOne({_id: imei}, {$set: tracking}, callback)
         } else {

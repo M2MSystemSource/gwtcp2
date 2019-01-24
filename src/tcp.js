@@ -42,6 +42,13 @@ module.exports = (app) => {
         case 'alive': processAlive(position, socket); break
         case 'sensing': processSensing(position, socket); break
         case 'msg': processMsg(data, socket); break
+        case 'electronobo':
+          app.io.local.emit('gwtcp2/electronobo', {
+            operationId: position.operationId,
+            litres: position.litres
+          })
+          socket.write('1\n')
+          break
         default:
           socket.destroy()
       }
@@ -96,6 +103,12 @@ module.exports = (app) => {
     })
   }
 
+  self.saveSesing = (sensing) => {
+    app.sensing.insert(sensing, (err) => {
+      if (err) console.error('insert sensing', err)
+    })
+  }
+
   /**
    * Comprueba si un dispositivo está online. Veririfica el estado del socket
    * y realiza una comprobación de fecha de la última conexión realizada, donde
@@ -109,7 +122,6 @@ module.exports = (app) => {
     if (!client) return false
     if (!client.socket) return false
     if (client.socket.destroyed) return false
-
     const now = Date.now()
     if ((now - client.lastConnection) > 12) {
       // hace más de 15 segundos que no envía nada... lo damos por desconectado
@@ -132,7 +144,7 @@ module.exports = (app) => {
     client.cmd = {cmdId, cmd, sent: false}
 
     if (cache === false) {
-      console.log('no cache, haya que vamos!!!')
+      console.log('no cache, haya que vamos!', cmd)
       self.transmitCmd(client)
     }
   }
@@ -201,6 +213,7 @@ module.exports = (app) => {
 
     const device = app.cache.get(position.imei)
     if (!device) {
+      debug('no device')
       socket.write('ko\n')
       self.closeSocket(position.imei, socket)
     }
@@ -212,6 +225,7 @@ module.exports = (app) => {
 
       if (!position.keepAlive) {
         self.closeSocket(position.imei, socket)
+        console.log('CLOSE SOCKET - NO KEEP ALIVE')
       } else {
         self.saveSocket(position.imei, socket)
         // notificamos que se ha realizado login
@@ -237,12 +251,13 @@ module.exports = (app) => {
   }
 
   const processSensing = (sensing, socket) => {
-    if (!validateImeiOrCloseTcp(sensing.imei)) {
+    if (!validateImeiOrCloseTcp(sensing._device)) {
       console.log('BIG FAIL! invalid imei antes de savePosition!!!')
       return
     }
 
-    console.log('sensing', sensing)
+    self.saveSesing(sensing)
+    socket.destroy()
   }
 
   const processMsg = (msg, socket) => {
@@ -309,6 +324,7 @@ module.exports = (app) => {
   const validateImeiOrCloseTcp = (imei, socket) => {
     const client = app.cache.get(imei)
     if (!client) {
+      console.log('invalid imei')
       self.closeSocket(imei, socket)
       return false
     }

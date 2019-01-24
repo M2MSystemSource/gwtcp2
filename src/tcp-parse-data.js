@@ -9,7 +9,7 @@ module.exports = (app) => {
   regex.isGreeting = /^8[0-9]{14}\|(1|2)$/
 
   // 867857039426874|0.3.0
-  regex.isGreetingVersion = /^8[0-9]{14}\|[0-9.]{1,10}$/
+  regex.isGreetingVersion = /^8[0-9]{14}\|[0-9a-zA-Z.]{1,10}$/
 
   // 867857039426874|1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|10208,38694
   regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
@@ -30,10 +30,12 @@ module.exports = (app) => {
   regex.isMsg = /^msg\|(.)*\$$/
 
   // is sensing auto
-  regex.isSensing = /^1,[0-9\-,.]*\|s\|[0-9a-zA-Z.,;:\-_]*$/
+  regex.isSensing = /^[0-9]{3,15}\|s\|.*(\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5})?$/
 
   // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
+
+  regex.isElectronobo = /^EN\|[0-9]*,[0-9]*$/
 
   regex.isAck = /^ack\|(0|1)$/
   regex.isFail = /ko/
@@ -63,6 +65,7 @@ module.exports = (app) => {
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
+    else if (regex.isElectronobo.test(data)) return self.parseElectronobo(data)
     else {
       debug('regex big fail!')
       return null
@@ -74,9 +77,14 @@ module.exports = (app) => {
     // suele tener el formato [IMEI]|1 o [IMEI]|0. El 1 indicaría que el dispositivo
     // está solicitando mantener el TCP abierto para comunicación bidireccional.
     // el 0 (o cualquier otra cosa) indica que no se requiere TCP abierto
-    const keepAlive = parseInt(data.slice(-1), 10)
+    let keepAlive = parseInt(data.slice(-1), 10)
     debug('parse greeting', keepAlive, data)
-    let version = (hasVersion) ? data.split('|')[1] : null
+    let version = null
+
+    if (hasVersion) {
+      version = data.split('|')[1]
+      keepAlive = 1
+    }
 
     return {
       version,
@@ -174,41 +182,65 @@ module.exports = (app) => {
 
   self.parseSensing = (data) => {
     const groups = data.split('|')
-
-    let sensing = {}
     let imei
     let sensorsData
-    let sensors
+    let batt
 
-    if (groups.length !== 3) return
-
-    try {
+    if (groups.length === 3) {
       imei = groups[0]
-      sensorsData = groups[2]
-      sensors = sensorsData.split('$')
-    } catch (e) {
-      console.log('fail sensors', e)
-      return {}
+      sensorsData = groups[2].trim()
+    } else if (groups.length === 4) {
+      imei = groups[0]
+      sensorsData = groups[2].trim()
+      batt = groups[3].split(',') // batt.length = 1-3 -> vbat[,vin,vsys]
+    } else {
+      console.log('INVALID SENSING', data)
+      return
     }
 
-    sensors.forEach((sensorRaw) => {
-                             // trim
-      let sensor = sensorRaw.replace(/^[^A-Za-z0-9]*|[^A-Z-a-z0-9]*$/gi, '').split(':')
-      let sensorName = sensor[0]
-      let sensorValue = sensor[1]
+    if (typeof sensorsData !== 'string' || sensorsData === '') {
+      console.log('INVALID SENSING DATA FORMAT', sensorsData)
+      return
+    }
 
-      if (app.sensors.hasOwnProperty(sensorName)) {
-        sensing[sensorName] = app.sensors[sensorName](sensorValue)
-      }
+    let sensors = {}
+
+    sensorsData = sensorsData.split('$').forEach((data) => {
+      if (!data) return null
+      data = data.replace(/^[^A-Za-z0-9]*|[^A-Z-a-z0-9]*$/gi, '')
+      data = data.replace(/,+/gi, ',')
+
+      const sensor = data.split(':')
+      if (sensor.length !== 2) return null
+
+      sensors[sensor[0]] = sensor[1]
     })
 
     return {
-      imei,
+      _id: shortid.generate(),
       mode: 'sensing',
-      device: imei,
-      raw: data,
-      sensing: self.createSensing(sensing)
+      _device: imei,
+      time: Date.now(),
+      data: self.createSensing(sensors, batt, data)
     }
+  }
+
+  self.parseElectronobo = (data) => {
+    let groups = data.split('|')
+    let operation = groups[1].split(',')
+    if (groups.length === 2 || operation.length === 2) {
+      let operationId = operation[1]
+      let litres = operation[0]
+      console.log(operationId, litres)
+
+      return {
+        operationId,
+        litres,
+        mode: 'electronobo'
+      }
+    }
+
+    return null
   }
 
   self.parseAlive = (data) => {
@@ -290,13 +322,17 @@ module.exports = (app) => {
     }
   }
 
-  self.createSensing = (sensing) => {
-    return {
-      _id: shortid.generate(),
-      _device: null,
-      stime: Date.now(),
-      data: sensing
+  self.createSensing = (sensorsData, battery, rawData) => {
+    const data = sensorsData
+    data.raw = rawData
+
+    if (battery) {
+      if (!isNaN(battery[0])) data.battery = parseFloat(battery[0])
+      if (!isNaN(battery[1])) data.extbattery = parseFloat(battery[1])
+      if (!isNaN(battery[2])) data.vsts = parseFloat(battery[2])
     }
+
+    return data
   }
 
   // var x = '867857039426874|s|temps:29.23;xxx;12.29;$temp:29.3'
