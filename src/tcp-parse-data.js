@@ -12,36 +12,37 @@ module.exports = (app) => {
   regex.isGreetingVersion = /^8[0-9]{14}\|[0-9a-zA-Z.]{1,10}$/
 
   // 867857039426874|1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|10208,38694
-  regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
+  // regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   // 867857039426874|0|5000,38694
-  regex.isAutoBatt = /^8[0-9]{14}\|0\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
+  // regex.isAutoBatt = /^8[0-9]{14}\|0\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   // 1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|4129,38694
-  regex.isTcp = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5}$/
+  // regex.isTcp = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5}$/
 
   // 1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|4129,38694,0
   regex.isTcpVSYS = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
+  // 0,12|5000,38694,0 // incluye GSM y VSYS
+  regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
+
   // 0|5000,38694
-  regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
+  // regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
 
   // msg|temp:2394$co2:22$
-  regex.isMsg = /^msg\|(.)*\$$/
+  regex.isMsg = /^msg\|(.)*\$?$/
 
-  // is sensing auto
+  // igual que msg, pero añade el imei al inicio de la cadena
   regex.isSensing = /^[0-9]{3,15}\|s\|.*(\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5})?$/
 
   regex.isElectronobo = /^EN\|[0-9]{3,15}\|[0-9]*,[0-9]*$/
   regex.isElectronoboSession = /^EN\|[0-9]{3,15}\|(.)*\$?$/
-  // 0,12|5000,38694,0 // incluye GSM y VSYS
-  regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   regex.isFeria = /^FERIA\|(.+){1,20}/
   regex.isReg = /^REG|8[0-9]{14},8[0-9]{18}f$/
 
   regex.isAck = /^ack\|(0|1)$/
-  regex.isFail = /ko/
+  regex.isFail = /ko/ // TODO en firmware!
 
   /**
    * Ejecuta las expresiones regulares de arriba para determinar que tipo
@@ -54,16 +55,16 @@ module.exports = (app) => {
     data = data.trim()
 
     if (data === '%') return self.parseAlive(data)
-    if (data == '0') return self.parseAlive(data)
-    if (data == '1') return self.parseAlive(data)
+    if (data === '0') return self.parseAlive(data)
+    if (data === '1') return self.parseAlive(data)
     else if (regex.isTcpVSYS.test(data)) return self.parseTcp(data)
     else if (regex.isTcpBattVSYS.test(data)) return self.parseTcpBattVSYS(data)
-    else if (regex.isTcp.test(data)) return self.parseTcp(data)
-    else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
+    // else if (regex.isTcp.test(data)) return self.parseTcp(data)
+    // else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
     else if (regex.isGreeting.test(data)) return self.parseGreeting(data, false)
     else if (regex.isGreetingVersion.test(data)) return self.parseGreeting(data, true)
-    else if (regex.isAuto.test(data)) return self.parseAuto(data)
-    else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
+    // else if (regex.isAuto.test(data)) return self.parseAuto(data)
+    // else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
     else if (regex.isMsg.test(data)) return self.parseMsg(data)
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)

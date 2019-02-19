@@ -38,20 +38,14 @@ module.exports = (app) => {
 
       switch (position.mode) {
         case 'greeting': processGreetings(position, socket); break
-        case 'auto': processAuto(position, socket); break
-        case 'auto-batt': processAuto(position, socket); break
-        case 'tcp': processTcp(position, socket); break
-        case 'tcp-batt': processTcp(position, socket); break
-        case 'ack': processAck(position, socket); break
         case 'alive': processAlive(position, socket); break
+        // case 'auto': processAuto(position, socket); break
+        // case 'auto-batt': processAuto(position, socket); break
+        case 'tcp': processTcp(position, socket); break
+        // case 'tcp-batt': processTcp(position, socket); break
+        case 'ack': processAck(position, socket); break
         case 'sensing': processSensing(position, socket); break
         case 'msg': processMsg(data, socket); break
-        case 'electronobo':
-          app.io.local.emit('gwtcp2/electronobo', {
-            operationId: position.operationId,
-            litres: position.litres
-          })
-          socket.write('1\n')
         case 'electronobo': processElectronobo(position, socket); break
         case 'electronoboSession': processElectronoboSession(position, socket); break
         case 'feria': processFeria(position, socket); break
