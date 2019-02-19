@@ -37,6 +37,7 @@ module.exports = (app) => {
   // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
+  regex.isFeria = /^FERIA\|(.+){1,20}/
   regex.isReg = /^REG|8[0-9]{14},8[0-9]{18}f$/
 
   regex.isAck = /^ack\|(0|1)$/
@@ -69,6 +70,7 @@ module.exports = (app) => {
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
     else if (regex.isElectronobo.test(data)) return self.parseElectronobo(data)
     else if (regex.isElectronoboSession.test(data)) return self.parseElectronoboSession(data)
+    else if (regex.isFeria.test(data)) return self.parseFeria(data)
     else if (regex.isReg.test(data)) return self.parseReg(data)
     else {
       debug('regex big fail!')
@@ -257,6 +259,13 @@ module.exports = (app) => {
     return {imei, request, mode}
   }
 
+  self.parseFeria = (data) => {
+    let group = data.split('|')
+    return {
+      mode: 'feria',
+      device: group[1] || false
+    }
+  }
 
   self.parseReg = (data) => {
     let group = data.split('|')

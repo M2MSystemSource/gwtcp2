@@ -54,6 +54,7 @@ module.exports = (app) => {
           socket.write('1\n')
         case 'electronobo': processElectronobo(position, socket); break
         case 'electronoboSession': processElectronoboSession(position, socket); break
+        case 'feria': processFeria(position, socket); break
         case 'reg': processReg(position, socket); break
         default:
           socket.destroy()
@@ -310,6 +311,8 @@ module.exports = (app) => {
     socket.write(`OK|AUTH|${opId}\n`)
   }
 
+  const processFeria = (position, socket) => {
+    socket.write('Co2 = 120\n')
   }
 
   const processTcp = (position, socket) => {
