@@ -5,6 +5,8 @@ const clients = {}
 module.exports = (app) => {
   const self = {}
 
+  const deviceRegistry = require('./register-device')(app)
+
   self.getClient = (imei) => clients[imei] || null
   self.eachClient = (cb) => Object.keys(clients).forEach((imei) => cb(imei, clients[imei]))
 
@@ -50,6 +52,7 @@ module.exports = (app) => {
           socket.write('1\n')
         case 'electronobo': processElectronobo(position, socket); break
         case 'electronoboSession': processElectronoboSession(position, socket); break
+        case 'reg': processReg(position, socket); break
         default:
           socket.destroy()
       }
@@ -263,6 +266,13 @@ module.exports = (app) => {
 
   const processMsg = (msg, socket) => {
     console.log('MSG: ', msg.data)
+
+  const processReg = (data, socket) => {
+    deviceRegistry.run(data.imei, data.iccid, (err, result) => {
+      if (err) return socket.write(`ERROR|${err.message}`)
+      socket.write(`OK|${result}`)
+    })
+  }
 
   const processElectronobo = (data, socket) => {
     app.io.local.emit('gwtcp2/electronobo', {

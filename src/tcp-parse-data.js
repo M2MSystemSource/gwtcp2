@@ -37,6 +37,7 @@ module.exports = (app) => {
   // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
+  regex.isReg = /^REG|8[0-9]{14},8[0-9]{18}f$/
 
   regex.isAck = /^ack\|(0|1)$/
   regex.isFail = /ko/
@@ -68,6 +69,7 @@ module.exports = (app) => {
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
     else if (regex.isElectronobo.test(data)) return self.parseElectronobo(data)
     else if (regex.isElectronoboSession.test(data)) return self.parseElectronoboSession(data)
+    else if (regex.isReg.test(data)) return self.parseReg(data)
     else {
       debug('regex big fail!')
       return null
@@ -253,6 +255,19 @@ module.exports = (app) => {
     let mode = 'electronoboSession'
 
     return {imei, request, mode}
+  }
+
+
+  self.parseReg = (data) => {
+    let group = data.split('|')
+    let imeiIccid = group[1].split(',')
+
+    return {
+      mode: 'reg',
+      imei: imeiIccid[0] || 0,
+      iccid: imeiIccid[1].replace('f', '') || 0,
+      data
+    }
   }
 
   self.parseAlive = (data) => {
