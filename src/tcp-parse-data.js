@@ -32,10 +32,11 @@ module.exports = (app) => {
   // is sensing auto
   regex.isSensing = /^[0-9]{3,15}\|s\|.*(\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5})?$/
 
+  regex.isElectronobo = /^EN\|[0-9]{3,15}\|[0-9]*,[0-9]*$/
+  regex.isElectronoboSession = /^EN\|[0-9]{3,15}\|(.)*\$?$/
   // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
-  regex.isElectronobo = /^EN\|[0-9]*,[0-9]*$/
 
   regex.isAck = /^ack\|(0|1)$/
   regex.isFail = /ko/
@@ -66,6 +67,7 @@ module.exports = (app) => {
     else if (data === 'ack') return self.parseAck(data)
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
     else if (regex.isElectronobo.test(data)) return self.parseElectronobo(data)
+    else if (regex.isElectronoboSession.test(data)) return self.parseElectronoboSession(data)
     else {
       debug('regex big fail!')
       return null
@@ -241,6 +243,16 @@ module.exports = (app) => {
     }
 
     return null
+  }
+
+  self.parseElectronoboSession = (data) => {
+    let groups = data.split('|')
+    let imei = groups[1]
+    let request = groups[2].split('$')
+    console.log('request', request)
+    let mode = 'electronoboSession'
+
+    return {imei, request, mode}
   }
 
   self.parseAlive = (data) => {

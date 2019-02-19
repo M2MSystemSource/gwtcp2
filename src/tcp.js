@@ -48,7 +48,8 @@ module.exports = (app) => {
             litres: position.litres
           })
           socket.write('1\n')
-          break
+        case 'electronobo': processElectronobo(position, socket); break
+        case 'electronoboSession': processElectronoboSession(position, socket); break
         default:
           socket.destroy()
       }
@@ -262,6 +263,23 @@ module.exports = (app) => {
 
   const processMsg = (msg, socket) => {
     console.log('MSG: ', msg.data)
+
+  const processElectronobo = (data, socket) => {
+    app.io.local.emit('gwtcp2/electronobo', {
+      operationId: data.operationId,
+      litres: data.litres
+    })
+    socket.write('ok\n')
+  }
+
+  const processElectronoboSession = (data, socket) => {
+    debug('Create Electronobo Session:')
+    console.log('Request ->\n', data)
+
+    let opId = Math.floor(Math.random() * (99999 - 99999)) + 99999
+    socket.write(`OK|AUTH|${opId}\n`)
+  }
+
   }
 
   const processTcp = (position, socket) => {
