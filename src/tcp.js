@@ -244,11 +244,14 @@ module.exports = (app) => {
       if (err) return console.log('[ERR] cmd check', err)
       app.setIOStatus(position.imei, -1, position.version)
 
+      socket.write('OK|' + Date.now() + '\n')
+
       if (!position.keepAlive) {
         self.closeSocket(position.imei, socket)
         console.log('CLOSE SOCKET - NO KEEP ALIVE')
       } else {
         self.saveSocket(position.imei, socket)
+
         // notificamos que se ha realizado login
         app.io.local.emit('gwtcp2/login', {
           deviceId: position.imei,
