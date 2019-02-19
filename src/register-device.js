@@ -1,5 +1,8 @@
+/**
+ * Registro de nuevos dispositivos.
+ */
+
 const waterfall = require('async/waterfall')
-const shortid = require('shortid')
 
 module.exports = (app) => {
   let self = {}

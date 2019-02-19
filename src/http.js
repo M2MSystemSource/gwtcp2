@@ -1,3 +1,15 @@
+/**
+ * Servidor HTTP con express.js. Lo utiliza la Api para enviar los comandos
+ * operacionales de los dispositivos.
+ *
+ * Este método, aunque de momento funcional, tiene el inconveniente de que
+ * impide que el proceso gwtcp2 pueda clusterizarse, ya que la API, al enviar
+ * un comando lo estaría enviando a uno de los procesos del cluster, y es muy
+ * posible que un dispositivo no esté conectado a dicho proceso
+ *
+ * TODO: Reemplazar por redis pub/sub para clusterizar gwtcp2
+ */
+
 const express = require('express')
 const http = express()
 var bodyParser = require('body-parser')
@@ -16,7 +28,7 @@ module.exports = (app) => {
     const cmd = req.body.cmd
     const cache = req.body.cache === 'ok'
     const eventName = 'ack-' + cmdId
-    let ackTimeout // contendrá el timer que espera la picorespuesta del dispositivo
+    let ackTimeout // contendrá el timer que espera la respuesta del dispositivo
 
     // el objeto que vamos a devolver a la api
     const result = {
@@ -26,7 +38,7 @@ module.exports = (app) => {
       cmd: cmd
     }
 
-    // comprobamos si el dispositivo edstá conectado
+    // comprobamos si el dispositivo está conectado
     if (!app.tcp.isAlive(deviceId)) {
       // si no lo está devolvemos respuesta inmediatamente
       return res.json(result)
@@ -111,9 +123,6 @@ module.exports = (app) => {
     result.cancelled = app.tcp.cancelCmd(client)
     // hasta la próxima baby!
     res.json(result)
-  })
-
-  http.get('/alive/:deviceId', (req, res) => {
   })
 
   // iniciamos el servidor HTTP y exportamos el objeto

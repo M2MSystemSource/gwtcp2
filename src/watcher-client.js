@@ -1,3 +1,9 @@
+/**
+ * La aplicación watcher tiene habilitado un servidor HTTP por el que se
+ * puede recibir datos que luego propaga a los clientes conectados al socket.
+ *
+ * Exportamos un método para realizar petición post desde este gwtpc2 a watcher
+ */
 const Client = require('node-rest-client').Client
 const debug = require('debug')('gwtcp2:watcher')
 
