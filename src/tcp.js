@@ -11,6 +11,8 @@ module.exports = (app) => {
   self.eachClient = (cb) => Object.keys(clients).forEach((imei) => cb(imei, clients[imei]))
 
   net.createServer((socket) => {
+    socket.setTimeout(300 * 1000)
+
     debug('new connection: ' + socket.remoteAddress + ':' + socket.remotePort)
 
     socket.on('data', (rawData) => {
@@ -71,6 +73,21 @@ module.exports = (app) => {
     socket.on('error', (err) => {
       console.log('[ERR]', err)
       console.log('[ERR] code', err.code)
+    })
+
+    socket.on('timeout', () => {
+      if (socket.imei) {
+        const device = clients[socket.imei]
+        if (device) {
+          console.log('TIMEOUT:', device.name)
+        } else {
+          console.log('TIMEOUT:', socket.imei)
+        }
+      } else {
+        console.log('TIMEOUT: UNKNOW DEVICE')
+      }
+
+      socket.destroy()
     })
   }).listen(app.conf.tcpPort)
 
