@@ -21,5 +21,20 @@ module.exports = (app) => {
     return Date.UTC(year, month - 1, day, hours, minutes, seconds)
   }
 
+  /**
+   * La respuesta base que se debe dar a cualquier petición válida "OK".
+   * Pasamos además \r\n para saltos de línea y posibilidad de un dato extra.
+   */
+  self.sayOk = (socket, data = null) => {
+    let OK = 'OK'
+    if (data) OK += `|${data}`
+    socket.write(`${OK}\r\n`)
+  }
+
+  self.sayKO = (socket) => {
+    socket.write('KO\r\n')
+
+  }
+
   app.utils = self
 }

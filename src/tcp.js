@@ -239,7 +239,7 @@ module.exports = (app) => {
       if (err) return console.log('[ERR] cmd check', err)
       app.setIOStatus(position.imei, -1, position.version)
 
-      socket.write('OK|' + Date.now() + '\n')
+      self.sayOk(socket, Date.now())
 
       if (!position.keepAlive) {
         self.closeSocket(position.imei, socket)
@@ -256,6 +256,7 @@ module.exports = (app) => {
     })
   }
 
+  /*
   const processAuto = (position, socket) => {
     if (!validateImeiOrCloseTcp(position.imei)) {
       console.log('BIG FAIL! invalid imei antes de savePosition!!!')
@@ -268,6 +269,7 @@ module.exports = (app) => {
       self.closeSocket(position.imei, socket)
     })
   }
+  */
 
   const processSensing = (sensing, socket) => {
     if (!validateImeiOrCloseTcp(sensing._device)) {
@@ -276,16 +278,18 @@ module.exports = (app) => {
     }
 
     self.saveSesing(sensing)
+    app.utils.sayOk(socket)
     socket.destroy()
   }
 
   const processMsg = (msg, socket) => {
-    console.log('MSG: ', msg.data)
+    app.utils.sayOk(socket)
+  }
 
   const processReg = (data, socket) => {
     deviceRegistry.run(data.imei, data.iccid, (err, result) => {
       if (err) return socket.write(`ERROR|${err.message}`)
-      socket.write(`OK|${result}`)
+      app.utils.sayOk(socket, result)
     })
   }
 
@@ -294,7 +298,8 @@ module.exports = (app) => {
       operationId: data.operationId,
       litres: data.litres
     })
-    socket.write('ok\n')
+
+    app.utils.sayOk(socket)
   }
 
   const processElectronoboSession = (data, socket) => {
