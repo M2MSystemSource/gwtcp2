@@ -239,7 +239,7 @@ module.exports = (app) => {
       if (err) return console.log('[ERR] cmd check', err)
       app.setIOStatus(position.imei, -1, position.version)
 
-      self.sayOk(socket, Date.now())
+      app.utils.sayOk(socket, Date.now())
 
       if (!position.keepAlive) {
         self.closeSocket(position.imei, socket)
