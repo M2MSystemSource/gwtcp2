@@ -4,7 +4,6 @@ const clients = {}
 
 module.exports = (app) => {
   const self = {}
-
   const deviceRegistry = require('./register-device')(app)
 
   self.getClient = (imei) => clients[imei] || null
@@ -299,15 +298,27 @@ module.exports = (app) => {
       litres: data.litres
     })
 
-    app.utils.sayOk(socket)
+    app.electronobo.terminateSession(data.operationId, data.litres, (err) => {
+      if (err) {
+        app.utils.sayKo(socket)
+      } else {
+        app.utils.sayOk(socket)
+      }
+    })
   }
 
   const processElectronoboSession = (data, socket) => {
-    debug('Create Electronobo Session:')
-    console.log('Request ->\n', data)
+    app.electronobo.createSession(data, (err, opNumber) => {
+      if (err) {
+        if (err.message.search('bad-litres') >= 0) {
+          return app.utils.sayOk(socket, 'BADLITRES')
+        } else {
+          return app.utils.sayOk(socket, 'NOAUTH')
+        }
+      }
 
-    let opId = Math.floor(Math.random() * (99999 - 99999)) + 99999
-    socket.write(`OK|AUTH|${opId}\n`)
+      app.utils.sayOk(socket, `AUTH|${opNumber}`)
+    })
   }
 
   const processFeria = (position, socket) => {

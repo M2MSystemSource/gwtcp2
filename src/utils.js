@@ -31,9 +31,10 @@ module.exports = (app) => {
     socket.write(`${OK}\r\n`)
   }
 
-  self.sayKO = (socket) => {
-    socket.write('KO\r\n')
-
+  self.sayKo = (socket, data = null) => {
+    let KO = 'KO'
+    if (data) KO += `|${data}`
+    socket.write(`${KO}\r\n`)
   }
 
   app.utils = self

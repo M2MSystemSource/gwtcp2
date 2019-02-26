@@ -6,6 +6,7 @@ app.conf = require(path.join(__dirname, 'src/conf'))
 // Conectamos a DB. El Callback indica que la conexión se ha realizado
 // Esperamos a que se inicie la DB para iniciar el resto de componentes
 require(path.join(__dirname, 'src/db'))(app, () => {
+  require(path.join(__dirname, 'src/electronobo'))(app)
   require(path.join(__dirname, 'src/shutdown-clean'))(app)
   require(path.join(__dirname, 'src/io'))(app)
   require(path.join(__dirname, 'src/cache'))(app)

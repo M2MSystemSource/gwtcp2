@@ -234,11 +234,11 @@ module.exports = (app) => {
 
   self.parseElectronobo = (data) => {
     let groups = data.split('|')
-    let operation = groups[1].split(',')
-    if (groups.length === 2 || operation.length === 2) {
+    let operation = groups[2].split(',')
+
+    if (groups.length === 3 && operation.length === 2) {
       let operationId = operation[1]
       let litres = operation[0]
-      console.log(operationId, litres)
 
       return {
         operationId,
@@ -254,7 +254,6 @@ module.exports = (app) => {
     let groups = data.split('|')
     let imei = groups[1]
     let request = groups[2].split('$')
-    console.log('request', request)
     let mode = 'electronoboSession'
 
     return {imei, request, mode}
