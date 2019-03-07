@@ -55,7 +55,6 @@ module.exports = (app) => {
         dbEnobo.insertOne({
           _id: opNumber,
           user: data.user,
-          pass: data.pass,
           litres: data.litres,
           totalLitres: data.litres,
           dateStart: Date.now(),
