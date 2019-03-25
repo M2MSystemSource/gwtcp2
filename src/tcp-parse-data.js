@@ -12,19 +12,25 @@ module.exports = (app) => {
   regex.isGreetingVersion = /^8[0-9]{14}\|[0-9a-zA-Z.]{1,10}$/
 
   // 867857039426874|1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|10208,38694
-  regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
+  // regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   // 867857039426874|0|5000,38694
-  regex.isAutoBatt = /^8[0-9]{14}\|0\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
+  // regex.isAutoBatt = /^8[0-9]{14}\|0\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   // 1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|4129,38694
-  regex.isTcp = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5}$/
+  // regex.isTcp = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5}$/
 
   // 1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|4129,38694,0
   regex.isTcpVSYS = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
+  // 0,12|5000,38694,0 // incluye GSM y VSYS
+  regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
+
   // 0|5000,38694
-  regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
+  // regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
+
+  // msg|temp:2394$co2:22$
+  regex.isMsg = /^msg\|(.)*\$?$/
 
   // msg|temp:2394$co2:22$
   regex.isMsg = /^msg\|(.)*\$?$/
@@ -32,14 +38,14 @@ module.exports = (app) => {
   // is sensing auto
   regex.isSensing = /^([0-9]{3,15}\|)?s\|.*(\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5})?$/
 
-  // 0,12|5000,38694,0 // incluye GSM y VSYS
-  regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
-
   regex.isElectronobo = /^EN\|[0-9]{3,15}\|[0-9]*,[0-9]*$/
   regex.isElectronoboSession = /^EN\|[0-9]{3,15}\|(.)*\$?$/
 
   regex.isAck = /^ack\|(0|1)(\|[0-9A-Za-z_-]+)?$/
   regex.isFail = /ko/
+
+  regex.isFeria = /^FERIA\|(.+){1,20}/
+  regex.isReg = /^REG|8[0-9]{14},8[0-9]{18}f$/
 
   /**
    * Ejecuta las expresiones regulares de arriba para determinar que tipo
@@ -52,22 +58,32 @@ module.exports = (app) => {
     data = data.trim()
 
     if (data === '%') return self.parseAlive(data)
-    if (data == '0') return self.parseAlive(data)
-    if (data == '1') return self.parseAlive(data)
+    if (data === '0') return self.parseAlive(data)
+    if (data === '1') return self.parseAlive(data)
     else if (regex.isTcpVSYS.test(data)) return self.parseTcp(data)
     else if (regex.isTcpBattVSYS.test(data)) return self.parseTcpBattVSYS(data)
-    else if (regex.isTcp.test(data)) return self.parseTcp(data)
-    else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
+    // else if (regex.isTcp.test(data)) return self.parseTcp(data)
+    // else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
     else if (regex.isGreeting.test(data)) return self.parseGreeting(data, false)
     else if (regex.isGreetingVersion.test(data)) return self.parseGreeting(data, true)
+<<<<<<< HEAD
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
+=======
+    // else if (regex.isAuto.test(data)) return self.parseAuto(data)
+    // else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
+>>>>>>> 7760ebdaac7d234eb0d797ac9cc77a8cac7192c7
     else if (regex.isMsg.test(data)) return self.parseMsg(data)
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
     else if (regex.isElectronobo.test(data)) return self.parseElectronobo(data)
     else if (regex.isElectronoboSession.test(data)) return self.parseElectronoboSession(data)
+<<<<<<< HEAD
+=======
+    else if (regex.isFeria.test(data)) return self.parseFeria(data)
+    else if (regex.isReg.test(data)) return self.parseReg(data)
+>>>>>>> 7760ebdaac7d234eb0d797ac9cc77a8cac7192c7
     else {
       debug('regex big fail!')
       return null
@@ -239,11 +255,11 @@ module.exports = (app) => {
   self.parseElectronobo = (data) => {
     console.log('electronobo')
     let groups = data.split('|')
-    let operation = groups[1].split(',')
-    if (groups.length === 2 || operation.length === 2) {
+    let operation = groups[2].split(',')
+
+    if (groups.length === 3 && operation.length === 2) {
       let operationId = operation[1]
       let litres = operation[0]
-      console.log(operationId, litres)
 
       return {
         operationId,
@@ -259,12 +275,38 @@ module.exports = (app) => {
     let groups = data.split('|')
     let imei = groups[1]
     let request = groups[2].split('$')
+<<<<<<< HEAD
     console.log('request', request)
+=======
+>>>>>>> 7760ebdaac7d234eb0d797ac9cc77a8cac7192c7
     let mode = 'electronoboSession'
 
     return {imei, request, mode}
   }
 
+<<<<<<< HEAD
+=======
+  self.parseFeria = (data) => {
+    let group = data.split('|')
+    return {
+      mode: 'feria',
+      device: group[1] || false
+    }
+  }
+
+  self.parseReg = (data) => {
+    let group = data.split('|')
+    let imeiIccid = group[1].split(',')
+
+    return {
+      mode: 'reg',
+      imei: imeiIccid[0] || 0,
+      iccid: imeiIccid[1].replace('f', '') || 0,
+      data
+    }
+  }
+
+>>>>>>> 7760ebdaac7d234eb0d797ac9cc77a8cac7192c7
   self.parseAlive = (data) => {
     let io6Status = -1
     let version = null

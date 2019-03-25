@@ -1,6 +1,12 @@
 const debug = require('debug')('gwtcp2:insert-position')
 const parallel = require('async').parallel
 
+/**
+ * Inserta una posición en la base de datos. Una vez `tcp.js` ha procesado y
+ * validado la petición esta se recibe aquí. Se envía la posición al watcher
+ * vía HTTP (watcher-client.js)
+ */
+
 module.exports = (app) => {
   const dbDevice = app.db.collection('devices')
   const self = {}
@@ -29,6 +35,7 @@ module.exports = (app) => {
           tracking['tracking.data.battery'] = position.data.battery
           tracking['tracking.data.extbattery'] = position.data.extbattery
           tracking['tracking.data.vsys'] = position.data.vsys
+          tracking['tracking.data.gsm'] = position.data.gsm || -1
 
           dbDevice.updateOne({_id: imei}, {$set: tracking}, callback)
         } else {

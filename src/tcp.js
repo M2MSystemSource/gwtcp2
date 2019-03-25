@@ -4,6 +4,7 @@ const clients = {}
 
 module.exports = (app) => {
   const self = {}
+  const deviceRegistry = require('./register-device')(app)
 
   self.getClient = (imei) => clients[imei] || null
   self.eachClient = (cb) => Object.keys(clients).forEach((imei) => cb(imei, clients[imei]))
@@ -36,29 +37,18 @@ module.exports = (app) => {
 
       switch (position.mode) {
         case 'greeting': processGreetings(position, socket); break
-        case 'auto': processAuto(position, socket); break
-        case 'auto-batt': processAuto(position, socket); break
-        case 'tcp': processTcp(position, socket); break
-        case 'tcp-batt': processTcp(position, socket); break
-        case 'ack': processAck(position, socket); break
         case 'alive': processAlive(position, socket); break
+        // case 'auto': processAuto(position, socket); break
+        // case 'auto-batt': processAuto(position, socket); break
+        case 'tcp': processTcp(position, socket); break
+        // case 'tcp-batt': processTcp(position, socket); break
+        case 'ack': processAck(position, socket); break
         case 'sensing': processSensing(position, socket); break
         case 'msg': processMsg(data, socket); break
-        case 'electronobo':
-          app.io.local.emit('gwtcp2/electronobo', {
-            operationId: position.operationId,
-            litres: position.litres
-          })
-          socket.write('ok\n')
-          break
-        case 'electronoboSession':
-          debug('Create Electronobo Session:')
-          console.log('Request ->\n', data)
-
-          let opId = Math.floor(Math.random() * (99999 - 99999)) + 99999
-          socket.write(`OK|AUTH|${opId}\n`)
-
-          break
+        case 'electronobo': processElectronobo(position, socket); break
+        case 'electronoboSession': processElectronoboSession(position, socket); break
+        case 'feria': processFeria(position, socket); break
+        case 'reg': processReg(position, socket); break
         default:
           socket.destroy()
       }
@@ -254,7 +244,8 @@ module.exports = (app) => {
       if (err) return console.log('[ERR] cmd check', err)
       app.setIOStatus(position.imei, -1, position.version)
 
-      socket.write('OK|' + Date.now() + '\n')
+      app.utils.sayOk(socket, Date.now())
+
 
       if (!position.keepAlive) {
         self.closeSocket(position.imei, socket)
@@ -271,6 +262,7 @@ module.exports = (app) => {
     })
   }
 
+  /*
   const processAuto = (position, socket) => {
     if (!validateImeiOrCloseTcp(position.imei)) {
       console.log('BIG FAIL! invalid imei antes de savePosition!!!')
@@ -283,6 +275,7 @@ module.exports = (app) => {
       self.closeSocket(position.imei, socket)
     })
   }
+  */
 
   const processSensing = (sensing, socket) => {
     let imei = sensing._device || socket.imei
@@ -303,7 +296,52 @@ module.exports = (app) => {
   }
 
   const processMsg = (msg, socket) => {
-    socket.write('OK\n')
+    app.utils.sayOk(socket)
+    socket.destroy()
+  }
+
+  const processMsg = (msg, socket) => {
+    app.utils.sayOk(socket)
+  }
+
+  const processReg = (data, socket) => {
+    deviceRegistry.run(data.imei, data.iccid, (err, result) => {
+      if (err) return socket.write(`ERROR|${err.message}`)
+      app.utils.sayOk(socket, result)
+    })
+  }
+
+  const processElectronobo = (data, socket) => {
+    app.io.local.emit('gwtcp2/electronobo', {
+      operationId: data.operationId,
+      litres: data.litres
+    })
+
+    app.electronobo.terminateSession(data.operationId, data.litres, (err) => {
+      if (err) {
+        app.utils.sayKo(socket)
+      } else {
+        app.utils.sayOk(socket)
+      }
+    })
+  }
+
+  const processElectronoboSession = (data, socket) => {
+    app.electronobo.createSession(data, (err, opNumber) => {
+      if (err) {
+        if (err.message.search('bad-litres') >= 0) {
+          return app.utils.sayOk(socket, 'BADLITRES')
+        } else {
+          return app.utils.sayOk(socket, 'NOAUTH')
+        }
+      }
+
+      app.utils.sayOk(socket, `AUTH|${opNumber}`)
+    })
+  }
+
+  const processFeria = (position, socket) => {
+    socket.write('Co2 = 120\n')
   }
 
   const processTcp = (position, socket) => {

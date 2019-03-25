@@ -1,3 +1,7 @@
+/**
+ * Exporta el objeto app.io, conectado al channel "local" en la aplicación "watcher"
+ */
+
 var io = require('socket.io-client')
 
 module.exports = (app) => {

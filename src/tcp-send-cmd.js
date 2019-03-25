@@ -1,3 +1,7 @@
+/**
+ * Comprueba si un dispositivo tiene algún comando pendiente de envío.
+ */
+
 const debug = require('debug')('gwtcp2:tcp:cmd')
 
 module.exports = (app) => {

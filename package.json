@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "HTTP_PORT=5555 TCP_PORT=3135 DEBUG=gwtcp2* nodemon app.js"
+    "dev": "HTTP_PORT=5556 TCP_PORT=3136 DEBUG=gwtcp2* nodemon app.js"
   },
   "author": "",
   "license": "ISC",
