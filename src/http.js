@@ -10,7 +10,6 @@ module.exports = (app) => {
    * Recibimos un comando para un dispositivo
    */
   http.post('/transmit-cmd/:deviceId', (req, res) => {
-
     const deviceId = req.params.deviceId
     const cmdId = req.body.cmdId
     const cmd = req.body.cmd
@@ -31,7 +30,7 @@ module.exports = (app) => {
       // si no lo está devolvemos respuesta inmediatamente
       return res.json(result)
     } else {
-      // si no cambiamos el result y seguimos con el procedimiento
+      // sí lo está...
       result.alive = true
     }
 
@@ -78,6 +77,7 @@ module.exports = (app) => {
       sentResponse()
     }, 18000)
 
+    console.log('teteo', cmd)
     app.tcp.addCmd(client, cmdId, cmd, cache)
     // app.tcp.transmitCmd(client)
   })

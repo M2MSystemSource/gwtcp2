@@ -26,15 +26,19 @@ module.exports = (app) => {
   // 0|5000,38694
   regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
 
+  // msg|temp:2394$co2:22$
+  regex.isMsg = /^msg\|(.)*\$?$/
+
   // is sensing auto
-  regex.isSensing = /^[0-9]{3,15}\|s\|.*(\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5})?$/
+  regex.isSensing = /^([0-9]{3,15}\|)?s\|.*(\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5})?$/
 
   // 0,12|5000,38694,0 // incluye GSM y VSYS
   regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
-  regex.isElectronobo = /^EN\|[0-9]*,[0-9]*$/
+  regex.isElectronobo = /^EN\|[0-9]{3,15}\|[0-9]*,[0-9]*$/
+  regex.isElectronoboSession = /^EN\|[0-9]{3,15}\|(.)*\$?$/
 
-  regex.isAck = /^ack\|(0|1)$/
+  regex.isAck = /^ack\|(0|1)(\|[0-9A-Za-z_-]+)?$/
   regex.isFail = /ko/
 
   /**
@@ -58,10 +62,12 @@ module.exports = (app) => {
     else if (regex.isGreetingVersion.test(data)) return self.parseGreeting(data, true)
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
+    else if (regex.isMsg.test(data)) return self.parseMsg(data)
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
     else if (regex.isElectronobo.test(data)) return self.parseElectronobo(data)
+    else if (regex.isElectronoboSession.test(data)) return self.parseElectronoboSession(data)
     else {
       debug('regex big fail!')
       return null
@@ -157,12 +163,22 @@ module.exports = (app) => {
     }
   }
 
+  self.parseMsg = (data) => {
+    return {
+      mode: 'msg',
+      device: null,
+      raw: data
+    }
+  }
+
   self.parseAck = (data) => {
     const p = data.split('|')
     const iostatus = p[1] || -1
+    const cmdId = p[2] || null
     debug('IOSTATUS: ', iostatus)
 
     return {
+      cmdId,
       iostatus: parseInt(iostatus),
       mode: 'ack'
     }
@@ -173,8 +189,14 @@ module.exports = (app) => {
     let imei
     let sensorsData
     let batt
+    let keepAlive = false
 
-    if (groups.length === 3) {
+    if (groups.length === 2) {
+      // utiliza el grettings y mantiene la sesión activa
+      imei = false
+      keepAlive = true
+      sensorsData = groups[1].trim()
+    } else if (groups.length === 3) {
       imei = groups[0]
       sensorsData = groups[2].trim()
     } else if (groups.length === 4) {
@@ -208,12 +230,14 @@ module.exports = (app) => {
       _id: shortid.generate(),
       mode: 'sensing',
       _device: imei,
+      keepAlive: false,
       time: Date.now(),
       data: self.createSensing(sensors, batt, data)
     }
   }
 
   self.parseElectronobo = (data) => {
+    console.log('electronobo')
     let groups = data.split('|')
     let operation = groups[1].split(',')
     if (groups.length === 2 || operation.length === 2) {
@@ -229,6 +253,16 @@ module.exports = (app) => {
     }
 
     return null
+  }
+
+  self.parseElectronoboSession = (data) => {
+    let groups = data.split('|')
+    let imei = groups[1]
+    let request = groups[2].split('$')
+    console.log('request', request)
+    let mode = 'electronoboSession'
+
+    return {imei, request, mode}
   }
 
   self.parseAlive = (data) => {

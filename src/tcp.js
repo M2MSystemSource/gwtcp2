@@ -9,6 +9,8 @@ module.exports = (app) => {
   self.eachClient = (cb) => Object.keys(clients).forEach((imei) => cb(imei, clients[imei]))
 
   net.createServer((socket) => {
+    socket.setTimeout(300 * 1000)
+
     debug('new connection: ' + socket.remoteAddress + ':' + socket.remotePort)
 
     socket.on('data', (rawData) => {
@@ -41,12 +43,21 @@ module.exports = (app) => {
         case 'ack': processAck(position, socket); break
         case 'alive': processAlive(position, socket); break
         case 'sensing': processSensing(position, socket); break
+        case 'msg': processMsg(data, socket); break
         case 'electronobo':
           app.io.local.emit('gwtcp2/electronobo', {
             operationId: position.operationId,
             litres: position.litres
           })
-          socket.write('1\n')
+          socket.write('ok\n')
+          break
+        case 'electronoboSession':
+          debug('Create Electronobo Session:')
+          console.log('Request ->\n', data)
+
+          let opId = Math.floor(Math.random() * (99999 - 99999)) + 99999
+          socket.write(`OK|AUTH|${opId}\n`)
+
           break
         default:
           socket.destroy()
@@ -66,6 +77,21 @@ module.exports = (app) => {
     socket.on('error', (err) => {
       console.log('[ERR]', err)
       console.log('[ERR] code', err.code)
+    })
+
+    socket.on('timeout', () => {
+      if (socket.imei) {
+        const device = clients[socket.imei]
+        if (device) {
+          console.log('TIMEOUT:', device.name)
+        } else {
+          console.log('TIMEOUT:', socket.imei)
+        }
+      } else {
+        console.log('TIMEOUT: UNKNOW DEVICE')
+      }
+
+      socket.destroy()
     })
   }).listen(app.conf.tcpPort)
 
@@ -144,7 +170,7 @@ module.exports = (app) => {
 
     if (cache === false) {
       console.log('no cache, haya que vamos!', cmd)
-      self.transmitCmd(client)
+      self.transmitCmd(client, true)
     }
   }
 
@@ -168,12 +194,18 @@ module.exports = (app) => {
    * @param {Object} client
    * @return {Boolean}
    */
-  self.transmitCmd = (client) => {
+  self.transmitCmd = (client, useId = false) => {
     if (!self.hasCmd(client)) return false
+
+    let cmd = client.cmd.cmd
+    if (useId) {
+      let cmdId = client.cmd.cmdId
+      cmd = `${cmdId}=${cmd}`
+    }
 
     try {
       client.cmd.sent = true
-      client.socket.write(client.cmd.cmd)
+      client.socket.write(cmd)
       return true
     } catch (e) {
       console.log('[ERR] socket write fail', e)
@@ -222,11 +254,14 @@ module.exports = (app) => {
       if (err) return console.log('[ERR] cmd check', err)
       app.setIOStatus(position.imei, -1, position.version)
 
+      socket.write('OK|' + Date.now() + '\n')
+
       if (!position.keepAlive) {
         self.closeSocket(position.imei, socket)
         console.log('CLOSE SOCKET - NO KEEP ALIVE')
       } else {
         self.saveSocket(position.imei, socket)
+
         // notificamos que se ha realizado login
         app.io.local.emit('gwtcp2/login', {
           deviceId: position.imei,
@@ -243,7 +278,6 @@ module.exports = (app) => {
     }
 
     self.savePosition(position.imei, position.position)
-    app.io.local.emit('gwtcp2/position', position)
     app.cmd.check(position.imei, socket, (err) => {
       if (err) return console.log('[ERR] cmd check', err)
       self.closeSocket(position.imei, socket)
@@ -251,13 +285,25 @@ module.exports = (app) => {
   }
 
   const processSensing = (sensing, socket) => {
-    if (!validateImeiOrCloseTcp(sensing._device)) {
+    let imei = sensing._device || socket.imei
+
+    if (!validateImeiOrCloseTcp(imei)) {
       console.log('BIG FAIL! invalid imei antes de savePosition!!!')
       return
     }
 
     self.saveSesing(sensing)
-    socket.destroy()
+
+    app.cmd.check(imei, socket, (err) => {
+      if (err) return console.log('[ERR] cmd check', err)
+      if (sensing.keepAlive) {
+        self.closeSocket(imei, socket)
+      }
+    })
+  }
+
+  const processMsg = (msg, socket) => {
+    socket.write('OK\n')
   }
 
   const processTcp = (position, socket) => {
@@ -276,16 +322,24 @@ module.exports = (app) => {
     }, 1000)
   }
 
-  const processAck = (position, socket) => {
+  const processAck = (ack, socket) => {
     const client = clients[socket.imei]
     if (!client) return
 
-    console.log('set status', socket.imei, position.iostatus)
-    app.setIOStatus(socket.imei, position.iostatus)
+    console.log('set status', socket.imei, ack.iostatus)
+    app.setIOStatus(socket.imei, ack.iostatus)
+
+    if (ack.cmdId) {
+      ack._device = socket.imei
+      app.watcher.post(ack)
+      app.cmd.setDone(ack.cmdId)
+    }
 
     if (client.waitingAck) {
-      app.emit('ack-' + client.cmd.cmdId)
+      app.emit('ack-' + ack.cmdId || client.cmd.cmdId)
     }
+
+    client.waitingAck = false
   }
 
   /**
