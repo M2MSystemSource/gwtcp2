@@ -34,6 +34,8 @@ module.exports = (app) => {
         return cb(null)
       }
 
+      console.log('cmd', cmd)
+
       if (cmd.timeout > 0) {
         if ((Date.now - cmd.createAt) > cmd.timeout) {
           debug(`${imei} -> cmd timeout`)

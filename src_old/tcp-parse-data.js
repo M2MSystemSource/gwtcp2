@@ -18,22 +18,22 @@ module.exports = (app) => {
   regex.isAutoBatt = /^8[0-9]{14}\|0\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   // 1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|4129,38694
-  // regex.isTcp = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5}$/
+  regex.isTcp = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5}$/
 
   // 1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|4129,38694,0
   regex.isTcpVSYS = /^1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
-  // 0,12|5000,38694,0 // incluye GSM y VSYS
-  regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
-
   // 0|5000,38694
-  // regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
+  regex.isTcpBatt = /^0\|[0-9]{1,5},[0-9]{1,5}$/
 
   // msg|temp:2394$co2:22$
-  // regex.isMsg = /^msg\|(.)*\$?$/
+  regex.isMsg = /^msg\|(.)*\$?$/
 
   // is sensing auto
   regex.isSensing = /^([0-9]{3,15}\|)?s\|.*(\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5})?$/
+
+  // 0,12|5000,38694,0 // incluye GSM y VSYS
+  regex.isTcpBattVSYS = /^0,[0-9]{1,5}\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
   regex.isElectronobo = /^EN\|[0-9]{3,15}\|[0-9]*,[0-9]*$/
   regex.isElectronoboSession = /^EN\|[0-9]{3,15}\|(.)*\$?$/
@@ -56,13 +56,13 @@ module.exports = (app) => {
     if (data == '1') return self.parseAlive(data)
     else if (regex.isTcpVSYS.test(data)) return self.parseTcp(data)
     else if (regex.isTcpBattVSYS.test(data)) return self.parseTcpBattVSYS(data)
-    // else if (regex.isTcp.test(data)) return self.parseTcp(data)
-    // else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
+    else if (regex.isTcp.test(data)) return self.parseTcp(data)
+    else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
     else if (regex.isGreeting.test(data)) return self.parseGreeting(data, false)
     else if (regex.isGreetingVersion.test(data)) return self.parseGreeting(data, true)
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
-    // else if (regex.isMsg.test(data)) return self.parseMsg(data)
+    else if (regex.isMsg.test(data)) return self.parseMsg(data)
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
@@ -189,10 +189,12 @@ module.exports = (app) => {
     let imei
     let sensorsData
     let batt
+    let keepAlive = false
 
     if (groups.length === 2) {
       // utiliza el grettings y mantiene la sesión activa
       imei = false
+      keepAlive = true
       sensorsData = groups[1].trim()
     } else if (groups.length === 3) {
       imei = groups[0]
@@ -235,11 +237,13 @@ module.exports = (app) => {
   }
 
   self.parseElectronobo = (data) => {
+    console.log('electronobo')
     let groups = data.split('|')
     let operation = groups[1].split(',')
     if (groups.length === 2 || operation.length === 2) {
       let operationId = operation[1]
       let litres = operation[0]
+      console.log(operationId, litres)
 
       return {
         operationId,
@@ -255,6 +259,7 @@ module.exports = (app) => {
     let groups = data.split('|')
     let imei = groups[1]
     let request = groups[2].split('$')
+    console.log('request', request)
     let mode = 'electronoboSession'
 
     return {imei, request, mode}
@@ -349,15 +354,11 @@ module.exports = (app) => {
       if (!isNaN(battery[2])) data.vsts = parseFloat(battery[2])
     }
 
-    if (data.hasOwnProperty('loc') && typeof data.loc === 'string') {
-      data.loc = data.loc
-      .split(',')
-      .map((loc) => parseFloat(loc))
-      .reverse()
-    }
-
     return data
   }
+
+  // var x = '867857039426874|s|temps:29.23;xxx;12.29;$temp:29.3'
+  // app.on('sensors-ready', () => test(x))
 
   app.data = self
 }

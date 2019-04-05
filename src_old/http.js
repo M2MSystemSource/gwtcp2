@@ -1,3 +1,15 @@
+/**
+ * Servidor HTTP con express.js. Lo utiliza la Api para enviar los comandos
+ * operacionales de los dispositivos.
+ *
+ * Este método, aunque de momento funcional, tiene el inconveniente de que
+ * impide que el proceso gwtcp2 pueda clusterizarse, ya que la API, al enviar
+ * un comando lo estaría enviando a uno de los procesos del cluster, y es muy
+ * posible que un dispositivo no esté conectado a dicho proceso
+ *
+ * TODO: Reemplazar por redis pub/sub para clusterizar gwtcp2
+ */
+
 const express = require('express')
 const http = express()
 var bodyParser = require('body-parser')
@@ -14,9 +26,8 @@ module.exports = (app) => {
     const cmdId = req.body.cmdId
     const cmd = req.body.cmd
     const cache = req.body.cache === 'ok'
-    const version = req.body.version || '0.3'
     const eventName = 'ack-' + cmdId
-    let ackTimeout // contendrá el timer que espera la picorespuesta del dispositivo
+    let ackTimeout // contendrá el timer que espera la respuesta del dispositivo
 
     // el objeto que vamos a devolver a la api
     const result = {
@@ -59,9 +70,9 @@ module.exports = (app) => {
       res.json(result)
     }
 
-    // Esperamos resuesta del dispositivo. Será el método processAck() de
-    // tcp.js quien emita este evento cuando reciba el ack del dispositivo.
-    // Si el dispositivo en lugar de ack devuele fail (el comando ha sido enviado
+    // esperamos resuesta del dispositivo. Será el método processAck() de
+    // tcp.js quien emita este evento cuando reciba el ack del dispositivo
+    // si el dispositivo en lugar de ack devuele fail (el comando ha sido enviado
     // pero no es válido), entonces será el método processFail() quien se encargue
     // de emitir este evento (eventName) y pasará el parámetro ack=false
     app.on(eventName, (ack) => {
@@ -78,7 +89,9 @@ module.exports = (app) => {
       sentResponse()
     }, 18000)
 
-    app.tcp.addCmd(client, cmdId, cmd, cache, version)
+    console.log('teteo', cmd)
+    app.tcp.addCmd(client, cmdId, cmd, cache)
+    // app.tcp.transmitCmd(client)
   })
 
   /**

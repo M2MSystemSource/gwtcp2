@@ -154,9 +154,9 @@ module.exports = (app) => {
    * @param {String} cmdId
    * @param {String} cmd
    */
-  self.addCmd = (client, cmdId, cmd, cache, version = '0.3') => {
+  self.addCmd = (client, cmdId, cmd, cache) => {
     client.waitingAck = true
-    client.cmd = {cmdId, cmd, version, sent: false}
+    client.cmd = {cmdId, cmd, sent: false}
 
     if (cache === false) {
       console.log('no cache, haya que vamos!', cmd)
@@ -186,10 +186,6 @@ module.exports = (app) => {
    */
   self.transmitCmd = (client, useId = false) => {
     if (!self.hasCmd(client)) return false
-
-    if (client.cmd.version === '0.4') {
-      useId = true
-    }
 
     let cmd = client.cmd.cmd
     if (useId) {

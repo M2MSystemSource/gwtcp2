@@ -1,0 +1,9 @@
+module.exports = {
+  dbUri: 'mongodb://localhost:27017/NAME',
+  dbName: 'NAME',
+  cacheDevicesTimeout: 60000,
+  ioUrl: 'http://0.0.0.0:00000/CHANNEL', // socket.io channel
+  watcherUrl: 'http://0.0.0.0:00000/', // HTTP watcher
+  tcpPort: process.env.TCP_PORT, // normalmente en package.json
+  httpPort: process.env.HTTP_PORT // normalmente en package.json
+}
