@@ -350,10 +350,14 @@ module.exports = (app) => {
     }
 
     if (data.hasOwnProperty('loc') && typeof data.loc === 'string') {
-      data.loc = data.loc
-      .split(',')
-      .map((loc) => parseFloat(loc))
-      .reverse()
+      const loc = data.loc.split(',')
+      data.loc = [loc[1], loc[0]]
+    }
+
+    if (data.hasOwnProperty('gloc') && typeof data.gloc === 'string') {
+      console.log('tiene GELOC!!')
+      const gloc = data.gloc.split(',')
+      data.gloc = [gloc[1], gloc[0], gloc[2]] // lon, lat, precission
     }
 
     return data

@@ -365,6 +365,7 @@ module.exports = (app) => {
 
   const processAck = (ack, socket) => {
     const client = clients[socket.imei]
+    console.log(1)
     if (!client) return
 
     const data = {}
@@ -381,8 +382,8 @@ module.exports = (app) => {
       app.cmd.setDone(ack.cmdId)
     }
 
-    if (client.waitingAck) {
-      app.emit('ack-' + ack.cmdId || client.cmd.cmdId)
+    if (client.waitingAck && client.cmd.cmdId) {
+      app.emit('ack-' + client.cmd.cmdId)
     }
 
     app.watcher.post(data)

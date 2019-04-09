@@ -29,10 +29,7 @@ module.exports = (app) => {
       status: 'pending'
     }, (err, cmd) => {
       if (err) return cb(err)
-      if (!cmd) {
-        console.log(1)
-        return cb(null)
-      }
+      if (!cmd) return cb(null)
 
       if (cmd.timeout > 0) {
         if ((Date.now - cmd.createAt) > cmd.timeout) {
