@@ -45,8 +45,8 @@ module.exports = (app) => {
         case 'ack': processAck(position, socket); break
         case 'sensing': processSensing(position, socket); break
         case 'msg': processMsg(data, socket); break
-        case 'electronobo': processElectronobo(position, socket); break
-        case 'electronoboSession': processElectronoboSession(position, socket); break
+        case 'electronobo': processElectronoboTerminateSession(position, socket); break
+        case 'electronoboSession': processElectronoboCreateSession(position, socket); break
         case 'feria': processFeria(position, socket); break
         case 'reg': processReg(position, socket); break
         default:
@@ -314,12 +314,7 @@ module.exports = (app) => {
     })
   }
 
-  const processElectronobo = (data, socket) => {
-    app.io.local.emit('gwtcp2/electronobo', {
-      operationId: data.operationId,
-      litres: data.litres
-    })
-
+  const processElectronoboTerminateSession = (data, socket) => {
     app.electronobo.terminateSession(data.operationId, data.litres, (err) => {
       if (err) {
         app.utils.sayKo(socket)
@@ -329,7 +324,7 @@ module.exports = (app) => {
     })
   }
 
-  const processElectronoboSession = (data, socket) => {
+  const processElectronoboCreateSession = (data, socket) => {
     app.electronobo.createSession(data, (err, opNumber) => {
       if (err) {
         if (err.message.search('bad-litres') >= 0) {

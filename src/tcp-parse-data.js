@@ -35,7 +35,7 @@ module.exports = (app) => {
   // is sensing auto
   regex.isSensing = /^([0-9]{3,15}\|)?s\|.*(\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5})?$/
 
-  regex.isElectronobo = /^EN\|[0-9]{3,15}\|[0-9]*,[0-9]*$/
+  regex.isElectronobo = /^EN\|[0-9]{3,15}\|([0-9])+,([0-9])+$/
   regex.isElectronoboSession = /^EN\|[0-9]{3,15}\|(.)*\$?$/
 
   regex.isAck = /^ack\|(0|1)(\|[0-9A-Za-z_-]+)?$/
@@ -236,8 +236,8 @@ module.exports = (app) => {
 
   self.parseElectronobo = (data) => {
     let groups = data.split('|')
-    let operation = groups[1].split(',')
-    if (groups.length === 2 || operation.length === 2) {
+    let operation = groups[2].split(',')
+    if (groups.length === 3 || operation.length === 2) {
       let operationId = operation[1]
       let litres = operation[0]
 
@@ -255,9 +255,12 @@ module.exports = (app) => {
     let groups = data.split('|')
     let imei = groups[1]
     let request = groups[2].split('$')
+    let user = request[0].replace('u:', '')
+    let pass = request[1].replace('p:', '')
+    let litres = request[2].replace('l:', '')
     let mode = 'electronoboSession'
 
-    return {imei, request, mode}
+    return {imei, user, pass, litres, mode}
   }
 
   self.parseAlive = (data) => {
@@ -355,7 +358,6 @@ module.exports = (app) => {
     }
 
     if (data.hasOwnProperty('gloc') && typeof data.gloc === 'string') {
-      console.log('tiene GELOC!!')
       const gloc = data.gloc.split(',')
       data.gloc = [gloc[1], gloc[0], gloc[2]] // lon, lat, precission
     }
