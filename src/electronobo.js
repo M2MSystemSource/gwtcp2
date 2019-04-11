@@ -52,8 +52,7 @@ module.exports = (app) => {
         if (!opNumber) return cb(null)
 
         const session = {
-          // _id: opNumber,
-          _id: 22222,
+          _id: opNumber,
           _device: data.imei,
           user: data.user,
           pass: data.pass,

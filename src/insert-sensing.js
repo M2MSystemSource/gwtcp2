@@ -39,6 +39,14 @@ module.exports = (app) => {
           updateDate.$set.tracking.data.loc = sensing.data.loc
         }
 
+        if (sensing.data.hasOwnProperty('gloc')) {
+          updateDate.$set.tracking = {
+            gpstime: Date.now(),
+            data: {}
+          }
+          updateDate.$set.tracking.data.loc = [sensing.data.gloc[0], sensing.data.gloc[1]]
+        }
+
         dbDevice.updateOne({_id: imei}, updateDate, callback)
       }
     ], (err, result) => {
