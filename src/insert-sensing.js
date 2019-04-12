@@ -47,6 +47,11 @@ module.exports = (app) => {
           updateDate.$set.tracking.data.loc = [sensing.data.gloc[0], sensing.data.gloc[1]]
         }
 
+        if (sensing.data.hasOwnProperty('cvin')) {
+          updateDate.$set.vars = {}
+          updateDate.$set.vars.cvin = sensing.data.vcin
+        }
+
         dbDevice.updateOne({_id: imei}, updateDate, callback)
       }
     ], (err, result) => {
