@@ -360,7 +360,6 @@ module.exports = (app) => {
 
   const processAck = (ack, socket) => {
     const client = clients[socket.imei]
-    console.log(1)
     if (!client) return
 
     const data = {}
@@ -404,10 +403,10 @@ module.exports = (app) => {
     // enviamos el alive al watcher
     app.watcher.post(data, 'alive')
 
-    setTimeout(() => {
-      self.transmitCmd(client)
-    }, 1000)
+    // buscamos comandos en cache
+    setTimeout(() => self.transmitCmd(client), 1000)
 
+    // Buscamos comandos en DB
     app.cmd.check(data._device, socket, (err) => {
       if (err) return console.log('[ERR] cmd check', err)
     })
