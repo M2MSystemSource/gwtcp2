@@ -42,6 +42,7 @@ module.exports = (app) => {
       debug(`write -> ${cmd._id}=${cmd.cmd}`)
       socket.write(`${cmd._id}=${cmd.cmd}\n`)
       self.updateCmd(cmd._id, {sent: Date.now()})
+      app.watcher.post(cmd, 'cmd-sent')
       cb(null)
     })
   }

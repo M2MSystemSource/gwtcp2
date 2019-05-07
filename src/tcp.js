@@ -381,7 +381,7 @@ module.exports = (app) => {
       app.emit('ack-' + client.cmd.cmdId)
     }
 
-    app.watcher.post(data)
+    app.watcher.post(data, 'ack')
 
     client.waitingAck = false
   }
@@ -401,7 +401,8 @@ module.exports = (app) => {
       app.setIOStatus(data._device, data.iostatus, data.version, data.time)
     }
 
-    app.watcher.post(data)
+    // enviamos el alive al watcher
+    app.watcher.post(data, 'alive')
 
     setTimeout(() => {
       self.transmitCmd(client)
