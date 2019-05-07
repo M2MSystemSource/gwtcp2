@@ -21,18 +21,19 @@ module.exports = (app) => {
 
   self.check = (imei, socket, cb) => {
     const device = app.cache.get(imei)
-    if (!device) cb(new Error('Not a valid device'))
+    if (!device) return cb(new Error(`Not a valid device: ${imei}`))
 
     Cmds.findOne({
       _device: device._id,
       _account: device._account,
-      status: 'pending'
+      status: 'pending',
+      timeout: {$lt: Date.now()}
     }, (err, cmd) => {
       if (err) return cb(err)
       if (!cmd) return cb(null)
 
       if (cmd.timeout > 0) {
-        if ((Date.now - cmd.createAt) > cmd.timeout) {
+        if ((Date.now() - cmd.createAt) > cmd.timeout) {
           debug(`${imei} -> cmd timeout`)
           self.updateCmd(cmd._id, {status: 'timeout'})
           return cb(null)
@@ -41,7 +42,7 @@ module.exports = (app) => {
 
       debug(`write -> ${cmd._id}=${cmd.cmd}`)
       socket.write(`${cmd._id}=${cmd.cmd}\n`)
-      self.updateCmd(cmd._id, {sent: Date.now()})
+      self.updateCmd(cmd._id, {sent: Date.now(), status: 'sent'})
       app.watcher.post(cmd, 'cmd-sent')
       cb(null)
     })
