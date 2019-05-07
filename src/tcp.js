@@ -397,8 +397,8 @@ module.exports = (app) => {
     data._device = socket.imei
     data.time = Date.now()
 
-    if (data.io6Status !== null) {
-      app.setIOStatus(data._device, data.io6Status, data.version, data.time)
+    if (data.iostatus !== null) {
+      app.setIOStatus(data._device, data.iostatus, data.version, data.time)
     }
 
     app.watcher.post(data)
