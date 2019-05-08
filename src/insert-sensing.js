@@ -49,7 +49,7 @@ module.exports = (app) => {
 
         if (sensing.data.hasOwnProperty('cvin')) {
           updateDate.$set.vars = {}
-          updateDate.$set.vars.cvin = sensing.data.vcin
+          updateDate.$set.vars.cvin = sensing.data.cvin
         }
 
         dbDevice.updateOne({_id: imei}, updateDate, callback)

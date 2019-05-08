@@ -1,3 +1,7 @@
+/**
+ * Utilizando expressjs se expone un servidor HTTP
+ * Se utiliza principalmente para recibir y cancelar comandos
+ */
 const express = require('express')
 const http = express()
 var bodyParser = require('body-parser')
@@ -12,7 +16,6 @@ module.exports = (app) => {
   http.post('/transmit-cmd/:deviceId', (req, res) => {
     const deviceId = req.params.deviceId
     const cmdId = req.body.cmdId
-    console.log('xxxxxxxxxxxxxxxxxxxx cmdId', cmdId)
     const cmd = req.body.cmd
     const cache = req.body.cache === 'ok'
     const version = req.body.version || '0.3'
@@ -66,7 +69,6 @@ module.exports = (app) => {
     // pero no es válido), entonces será el método processFail() quien se encargue
     // de emitir este evento (eventName) y pasará el parámetro ack=false
     app.on(eventName, (ack) => {
-      console.log('x', ack)
       clearTimeout(ackTimeout) // el ack se ha cumplido, eliminamos el timeout
       result.sent = true
       sentResponse()

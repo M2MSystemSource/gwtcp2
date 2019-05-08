@@ -7,7 +7,7 @@ module.exports = () => {
     let ipAddress = socket.connection.remoteAddress
     if (!ipAddress) return '0.0.0.0'
 
-    if (ipAddress.substr(0, 7) == "::ffff:") {
+    if (ipAddress.substr(0, 7) === '::ffff:') {
       ipAddress = ipAddress.substr(7)
     }
 
@@ -31,7 +31,6 @@ module.exports = () => {
     __LIST[ipAddress].count++
 
     const timeDiff = Date.now() - __LIST.time
-
     if (__LIST[ipAddress].count > 10) {
       if (timeDiff > 20000) {
         return reset(ipAddress)

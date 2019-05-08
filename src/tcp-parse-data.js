@@ -298,20 +298,20 @@ module.exports = (app) => {
   }
 
   self.parseAlive = (data) => {
-    let io6Status = -1
+    let iostatus = null
     let version = null
 
     if (data !== '%' && !isNaN(data)) {
-      io6Status = parseInt(data)
+      iostatus = parseInt(data)
     } else if (data === '%') {
-      // los dispositivos que envian el símbolo % utilizan el firmware 0.3.0b
-      // estos dispositivos no envian su número de versión en el greetings
+      // Los dispositivos que envian el símbolo % utilizan el firmware 0.3.0b.
+      // Estos dispositivos no envian su número de versión en el greetings
       // aprovechamos este momento para añadirlo
       version = '0.3.0b'
     }
 
     return {
-      io6Status,
+      iostatus,
       version,
       mode: 'alive'
     }

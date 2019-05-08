@@ -367,7 +367,6 @@ module.exports = (app) => {
 
   const processAck = (ack, socket) => {
     const client = clients[socket.imei]
-    console.log(1)
     if (!client) return
 
     const data = {}
@@ -388,7 +387,7 @@ module.exports = (app) => {
       app.emit('ack-' + client.cmd.cmdId)
     }
 
-    app.watcher.post(data)
+    app.watcher.post(data, 'ack')
 
     client.waitingAck = false
   }
@@ -404,16 +403,17 @@ module.exports = (app) => {
     data._device = socket.imei
     data.time = Date.now()
 
-    if (data.io6Status !== null) {
-      app.setIOStatus(data._device, data.io6Status, data.version, data.time)
+    if (data.iostatus !== null) {
+      app.setIOStatus(data._device, data.iostatus, data.version, data.time)
     }
 
-    app.watcher.post(data)
+    // enviamos el alive al watcher
+    app.watcher.post(data, 'alive')
 
-    setTimeout(() => {
-      self.transmitCmd(client)
-    }, 1000)
+    // buscamos comandos en cache
+    setTimeout(() => self.transmitCmd(client), 1000)
 
+    // Buscamos comandos en DB
     app.cmd.check(data._device, socket, (err) => {
       if (err) return console.log('[ERR] cmd check', err)
     })
