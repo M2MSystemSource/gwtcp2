@@ -16,16 +16,20 @@ module.exports = (app) => {
 
     socket.on('data', (rawData) => {
       const data = rawData.toString('utf8')
-      const imei = (socket.imei) ? socket.imei : ''
+      let imei = (socket.imei) ? socket.imei : ''
 
       // enviamos los datos recibidos al parser, este nos dirá que tenemos que
       // hacer con ellos. Hay multiples opciones
-      const position = app.data.parse(data.toString('utf8'))
-      if (!position) {
+      const message = app.data.parse(data.toString('utf8'))
+      if (!message) {
         debug('Invalid incoming data ->')
         debug(data)
         socket.destroy()
         return null
+      }
+
+      if (message.imei) {
+        imei = socket.imei = message.imei
       }
 
       const device = app.cache.get(imei)
@@ -35,20 +39,20 @@ module.exports = (app) => {
         debug('> UNKNOW', imei, data)
       }
 
-      switch (position.mode) {
-        case 'greeting': processGreetings(position, socket); break
-        case 'alive': processAlive(position, socket); break
-        // case 'auto': processAuto(position, socket); break
-        // case 'auto-batt': processAuto(position, socket); break
-        case 'tcp': processTcp(position, socket); break
-        // case 'tcp-batt': processTcp(position, socket); break
-        case 'ack': processAck(position, socket); break
-        case 'sensing': processSensing(position, socket); break
+      switch (message.mode) {
+        case 'greeting': processGreetings(message, socket); break
+        case 'alive': processAlive(message, socket); break
+        // case 'auto': processAuto(message, socket); break
+        // case 'auto-batt': processAuto(message, socket); break
+        case 'tcp': processTcp(message, socket); break
+        // case 'tcp-batt': processTcp(message, socket); break
+        case 'ack': processAck(message, socket); break
+        case 'sensing': processSensing(message, socket); break
         case 'msg': processMsg(data, socket); break
-        case 'electronobo': processElectronoboTerminateSession(position, socket); break
-        case 'electronoboSession': processElectronoboCreateSession(position, socket); break
-        case 'feria': processFeria(position, socket); break
-        case 'reg': processReg(position, socket); break
+        case 'electronobo': processElectronoboTerminateSession(message, socket); break
+        case 'electronoboSession': processElectronoboCreateSession(message, socket); break
+        case 'feria': processFeria(message, socket); break
+        case 'reg': processReg(message, socket); break
         default:
           socket.destroy()
       }
@@ -194,7 +198,7 @@ module.exports = (app) => {
     let cmd = client.cmd.cmd
     if (useId) {
       let cmdId = client.cmd.cmdId
-      cmd = `${cmdId}=${cmd}`
+      cmd = `$${cmdId}=${cmd.replace(/^#|\$$/g, '')}#`
     }
 
     try {
@@ -242,6 +246,9 @@ module.exports = (app) => {
       socket.write('ko\n')
       self.closeSocket(position.imei, socket)
     }
+
+    // console.log('write')
+    // socket.write('8ksdj3234=#CFG|pwr:1$')
 
     // comprobamos si hay algún comando para enviar
     app.cmd.check(position.imei, socket, (err, closeTcp) => {

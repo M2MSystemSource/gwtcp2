@@ -39,15 +39,24 @@ module.exports = (app) => {
         }
       }
 
-      debug(`write -> ${cmd._id}=${cmd.cmd}`)
-      socket.write(`${cmd._id}=${cmd.cmd}\n`)
-      self.updateCmd(cmd._id, {sent: Date.now()})
+      const propValues = cmd.cmd.replace(/^#|\$$/g, '')
+      const cmdSize = propValues.length
+      const finalCmd = `$${cmd._id}|${propValues}|${cmdSize}#`
+      debug(`write -> ${finalCmd}`)
+
+      socket.write(`${finalCmd}`)
+      // socket.write('asdfasdf=#CFG|pwr=1$')
+      // self.updateCmd(cmd._id, {sent: Date.now()})
       cb(null)
     })
   }
 
   self.setDone = (cmdId) => {
     self.updateCmd(cmdId, {status: 'done', ack: Date.now()})
+  }
+
+  self.clearCmd = (cmd) => {
+
   }
 
   app.cmd = self

@@ -11,6 +11,9 @@ module.exports = (app) => {
   // 867857039426874|0.3.0
   regex.isGreetingVersion = /^8[0-9]{14}\|[0-9a-zA-Z.]{1,10}$/
 
+  // @id:i234234,v:0.3.3,iccid:923923492349$
+  regex.isGreetingFull = /^@(.)*\$$/
+
   // 867857039426874|1,20180907065405.000,39.519982,-0.454391,88.715,0.00,302.2,1.2,11|10208,38694
   regex.isAuto = /^8[0-9]{14}\|1,[0-9\-,.]*\|[0-9]{1,5},[0-9]{1,5},[0-9]{1,5}$/
 
@@ -60,6 +63,7 @@ module.exports = (app) => {
     // else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
     else if (regex.isGreeting.test(data)) return self.parseGreeting(data, false)
     else if (regex.isGreetingVersion.test(data)) return self.parseGreeting(data, true)
+    else if (regex.isGreetingFull.test(data)) return self.isGreetingFull(data, true)
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
     // else if (regex.isMsg.test(data)) return self.parseMsg(data)
@@ -95,6 +99,36 @@ module.exports = (app) => {
       imei: data.split('|')[0],
       position: null
     }
+  }
+
+  self.isGreetingFull = (data) => {
+    // eliminamos la arroba y dolar al inicio y fin y
+    // hacemos split de la cadena separada por comas (id:23423,v:239,...)
+    const msg = data.replace(/^@|\$$/g, '').split(',')
+
+    const result = {
+      mode: 'greeting',
+      version: null,
+      imei: null,
+      iccid: null,
+      status: null,
+      position: null,
+      keepAlive: true
+    }
+
+    // parseamso el mensaje, puede contener multiples variables, pero al menos
+    // debe tener una obligatoria, el id de dispositivo o imei
+    msg.forEach((prop) => {
+      const a = prop.split(':')
+      if (a.length === 2) {
+        if (a[0] === 'id') result.imei = a[1]
+        if (a[0] === 'v') result.version = a[1]
+        if (a[0] === 'iccid') result.iccid = a[1]
+        if (a[0] === 'status') result.status = a[1]
+      }
+    })
+
+    return result
   }
 
   self.parseAuto = (data) => {
