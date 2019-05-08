@@ -406,6 +406,7 @@ module.exports = (app) => {
     }
 
     // enviamos el alive al watcher
+    console.log('before post', data)
     app.watcher.post(data, 'alive')
 
     // buscamos comandos en cache

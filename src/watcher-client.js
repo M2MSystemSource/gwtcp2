@@ -12,9 +12,14 @@ module.exports = (app) => {
   const client = new Client()
 
   watcher.post = (data, type) => {
+    if (app.conf.disableWatcher) {
+      return
+    }
     const url = app.conf.watcherUrl
     if (type) data = {data, type}
     const headers = {'Content-Type': 'application/text'}
+
+    console.log('on watcher', data)
 
     try {
       let response = JSON.stringify(data)
