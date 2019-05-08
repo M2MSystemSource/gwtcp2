@@ -45,7 +45,7 @@ module.exports = (app) => {
     ], (err, result) => {
       if (err) return debug('[ERR] save position', err)
       // app.io.local.emit('gwtcp2/position', {position, customerId: device._account})
-      app.watcher.post(position)
+      app.watcher.post(position, 'position')
     })
   }
 

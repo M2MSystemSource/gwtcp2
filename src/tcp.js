@@ -299,7 +299,7 @@ module.exports = (app) => {
 
     sensing._device = imei
     self.saveSesing(sensing)
-    app.watcher.post(sensing)
+    app.watcher.post(sensing, 'sensing')
 
     app.cmd.check(imei, socket, (err) => {
       if (err) return console.log('[ERR] cmd check', err)
@@ -378,8 +378,6 @@ module.exports = (app) => {
     app.setIOStatus(data._device, ack.iostatus, null, data.time)
 
     if (ack.cmdId) {
-      ack._device = socket.imei
-      app.watcher.post(ack)
       app.cmd.setDone(ack.cmdId)
     }
 

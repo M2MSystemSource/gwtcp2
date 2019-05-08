@@ -11,8 +11,6 @@ module.exports = (app) => {
   const watcher = {}
   const client = new Client()
 
-  /**
-   */
   watcher.post = (data, type) => {
     const url = app.conf.watcherUrl
     if (type) data = {data, type}

@@ -56,8 +56,6 @@ module.exports = (app) => {
       }
     ], (err, result) => {
       if (err) return debug('[ERR] save sensing', err)
-      app.io.local.emit('gwtcp2/sensing', {sensing, customerId: device._account})
-      // app.watcher.post(sensing)
     })
   }
 
