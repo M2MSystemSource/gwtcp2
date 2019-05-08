@@ -392,7 +392,6 @@ module.exports = (app) => {
 
   /**
    * Comunica a watcher.io que un dispositivo está vivo.
-   *
    * @param {Net.Socket} socket
    */
   const processAlive = (data, socket) => {
@@ -406,7 +405,6 @@ module.exports = (app) => {
     }
 
     // enviamos el alive al watcher
-    console.log('before post', data)
     app.watcher.post(data, 'alive')
 
     // buscamos comandos en cache
