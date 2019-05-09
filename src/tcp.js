@@ -366,6 +366,31 @@ module.exports = (app) => {
     }, 1000)
   }
 
+  const processAck = (ack, socket) => {
+    const client = clients[socket.imei]
+    if (!client) return
+
+    const data = {}
+    data._device = socket.imei
+    data.time = Date.now()
+    data.status = ack.iostatus
+    data.ack = 1
+
+    app.setIOStatus(data._device, ack.iostatus, null, data.time)
+
+    if (ack.cmdId) {
+      app.cmd.setDone(ack.cmdId)
+    }
+
+    if (client.waitingAck && client.cmd.cmdId) {
+      app.emit('ack-' + client.cmd.cmdId)
+    }
+
+    app.watcher.post(data, 'ack')
+
+    client.waitingAck = false
+  }
+
   const processAck2 = (ack, socket) => {
     const client = clients[socket.imei]
     if (!client) return self.closeSocket(null, socket)
