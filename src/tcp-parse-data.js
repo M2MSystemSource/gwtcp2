@@ -42,6 +42,7 @@ module.exports = (app) => {
   regex.isElectronoboSession = /^EN\|[0-9]{3,15}\|(.)*\$?$/
 
   regex.isAck = /^ack\|(0|1)(\|[0-9A-Za-z_-]+)?$/
+  regex.isAck2 = /^#ack\|id(.)*\$$/
   regex.isFail = /ko/
 
   /**
@@ -203,6 +204,35 @@ module.exports = (app) => {
       device: null,
       raw: data
     }
+  }
+
+  self.parseAck2 = (data) => {
+    let body = data.split('|')[1].slice(0, -1)
+    let props = body.split(';')
+
+    let result = {
+      mode: 'ack2',
+      cmdId: null,
+      iostatus: null,
+      processedProps: null
+    }
+
+    props.forEach((prop) => {
+      const a = prop.split(':')
+      if (a[0] === 'id')  result.cmdId = a[1]
+      else if (a[0] === 'io')  result.iostatus = a[1]
+      else if (a[0] === 'props')  result.processedProps = a[1]
+    })
+
+    console.log('')
+    console.log('')
+    console.log('')
+    debug('ACK2: ', result)
+    console.log('')
+    console.log('')
+    console.log('')
+
+    return result
   }
 
   self.parseAck = (data) => {

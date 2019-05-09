@@ -47,6 +47,7 @@ module.exports = (app) => {
         case 'tcp': processTcp(message, socket); break
         // case 'tcp-batt': processTcp(message, socket); break
         case 'ack': processAck(message, socket); break
+        case 'ack2': processAck2(message, socket); break
         case 'sensing': processSensing(message, socket); break
         case 'msg': processMsg(data, socket); break
         case 'electronobo': processElectronoboTerminateSession(message, socket); break
@@ -365,27 +366,21 @@ module.exports = (app) => {
     }, 1000)
   }
 
-  const processAck = (ack, socket) => {
+  const processAck2 = (ack, socket) => {
     const client = clients[socket.imei]
-    if (!client) return
+    if (!client) return self.closeSocket(null, socket)
 
-    const data = {}
-    data._device = socket.imei
-    data.time = Date.now()
-    data.status = ack.iostatus
-    data.ack = 1
-
-    app.setIOStatus(data._device, ack.iostatus, null, data.time)
-
-    if (ack.cmdId) {
-      app.cmd.setDone(ack.cmdId)
+    if (!ack.cmdId) {
+      return app.debug('INVALID ACK - NO cmdId')
     }
 
-    if (client.waitingAck && client.cmd.cmdId) {
-      app.emit('ack-' + client.cmd.cmdId)
-    }
+    ack._device = socket.imei
+    ack.time = Date.now()
 
-    app.watcher.post(data, 'ack')
+    app.setIOStatus(ack._device, ack.iostatus, null, ack.time)
+    app.cmd.setDone(ack.cmdId)
+
+    app.watcher.post(ack, 'ack')
 
     client.waitingAck = false
   }
