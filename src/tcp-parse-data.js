@@ -64,10 +64,11 @@ module.exports = (app) => {
     // else if (regex.isTcpBatt.test(data)) return self.parseTcpBatt(data)
     else if (regex.isGreeting.test(data)) return self.parseGreeting(data, false)
     else if (regex.isGreetingVersion.test(data)) return self.parseGreeting(data, true)
-    else if (regex.isGreetingFull.test(data)) return self.isGreetingFull(data, true)
+    else if (regex.isGreetingFull.test(data)) return self.parseGreetingFull(data, true)
     else if (regex.isAuto.test(data)) return self.parseAuto(data)
     else if (regex.isAutoBatt.test(data)) return self.parseAutoBatt(data)
     // else if (regex.isMsg.test(data)) return self.parseMsg(data)
+    else if (regex.isAck2.test(data)) return self.parseAck2(data)
     else if (regex.isAck.test(data)) return self.parseAck(data)
     else if (data === 'ack') return self.parseAck(data)
     else if (regex.isSensing.test(data)) return self.parseSensing(data)
@@ -102,7 +103,7 @@ module.exports = (app) => {
     }
   }
 
-  self.isGreetingFull = (data) => {
+  self.parseGreetingFull = (data) => {
     // eliminamos la arroba y dolar al inicio y fin y
     // hacemos split de la cadena separada por comas (id:23423,v:239,...)
     const msg = data.replace(/^@|\$$/g, '').split(',')
@@ -112,8 +113,8 @@ module.exports = (app) => {
       version: null,
       imei: null,
       iccid: null,
-      status: null,
-      position: null,
+      mastergpio: null,
+      iostatus: null,
       keepAlive: true
     }
 
@@ -125,7 +126,8 @@ module.exports = (app) => {
         if (a[0] === 'id') result.imei = a[1]
         if (a[0] === 'v') result.version = a[1]
         if (a[0] === 'iccid') result.iccid = a[1]
-        if (a[0] === 'status') result.status = a[1]
+        if (a[0] === 'io') result.mastergpio = a[1]
+        if (a[0] === 'iostatus') result.iostatus = a[1]
       }
     })
 
@@ -239,7 +241,6 @@ module.exports = (app) => {
     const p = data.split('|')
     const iostatus = p[1] || -1
     const cmdId = p[2] || null
-    debug('IOSTATUS: ', iostatus)
 
     return {
       cmdId,
