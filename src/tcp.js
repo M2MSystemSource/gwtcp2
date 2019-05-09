@@ -239,7 +239,9 @@ module.exports = (app) => {
    * @param {NetClient} socket
    */
   const processGreetings = (position, socket) => {
-    if (!validateImeiOrCloseTcp(position.imei)) return
+    if (!validateImeiOrCloseTcp(position.imei)) {
+      return console.log('BIG FAIL! GREETINGS invalid imei')
+    }
 
     const device = app.cache.get(position.imei)
     if (!device) {
@@ -263,13 +265,11 @@ module.exports = (app) => {
         console.log('CLOSE SOCKET - NO KEEP ALIVE')
       } else {
         self.saveSocket(position.imei, socket)
-
-        // notificamos que se ha realizado login
-        app.io.local.emit('gwtcp2/login', {
-          deviceId: position.imei,
-          account: device._account
-        })
       }
+
+      // notificamos que se ha realizado login
+      position._device = position.imei
+      app.watcher.post(position, 'greetings')
     })
   }
 
