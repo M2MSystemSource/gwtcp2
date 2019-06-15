@@ -12,23 +12,20 @@ module.exports = (app) => {
   const client = new Client()
 
   watcher.post = (data, type) => {
-    if (app.conf.disableWatcher) {
-      return
-    }
+    if (app.conf.disableWatcher) return
+
     const url = app.conf.watcherUrl
     if (type) data = {data, type}
     const headers = {'Content-Type': 'application/text'}
 
-    console.log('on watcher', data)
-
     try {
-      let response = JSON.stringify(data)
-      client.post(url, {response, headers}, (data) => {
+      data = JSON.stringify(data)
+      client.post(url, {data, headers}, (data) => {
         data = data.toString()
         // watcher nos devuelve un "ok" si la solicitud es válida
         // cualquier otro valor se debería entender como un error.
         if (data !== 'ok') {
-          debug('Watcher response error', data)
+          debug('Watcher request error', data)
         }
       })
       .on('error', (err) => {

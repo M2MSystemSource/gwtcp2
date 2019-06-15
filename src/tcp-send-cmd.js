@@ -27,7 +27,7 @@ module.exports = (app) => {
       _device: device._id,
       _account: device._account,
       status: 'pending',
-      timeout: {$lt: Date.now()}
+      timeout: {$gt: Date.now()}
     }, (err, cmd) => {
       if (err) return cb(err)
       if (!cmd) return cb(null)

@@ -47,6 +47,7 @@ module.exports = (app) => {
         case 'tcp': processTcp(message, socket); break
         // case 'tcp-batt': processTcp(message, socket); break
         case 'ack': processAck(message, socket); break
+        case 'ack2': processAck2(message, socket); break
         case 'sensing': processSensing(message, socket); break
         case 'msg': processMsg(data, socket); break
         case 'electronobo': processElectronoboTerminateSession(message, socket); break
@@ -238,7 +239,9 @@ module.exports = (app) => {
    * @param {NetClient} socket
    */
   const processGreetings = (position, socket) => {
-    if (!validateImeiOrCloseTcp(position.imei)) return
+    if (!validateImeiOrCloseTcp(position.imei)) {
+      return console.log('BIG FAIL! GREETINGS invalid imei')
+    }
 
     const device = app.cache.get(position.imei)
     if (!device) {
@@ -262,13 +265,11 @@ module.exports = (app) => {
         console.log('CLOSE SOCKET - NO KEEP ALIVE')
       } else {
         self.saveSocket(position.imei, socket)
-
-        // notificamos que se ha realizado login
-        app.io.local.emit('gwtcp2/login', {
-          deviceId: position.imei,
-          account: device._account
-        })
       }
+
+      // notificamos que se ha realizado login
+      position._device = position.imei
+      app.watcher.post(position, 'greetings')
     })
   }
 
@@ -365,34 +366,27 @@ module.exports = (app) => {
     }, 1000)
   }
 
-  const processAck = (ack, socket) => {
+  const processAck2 = (ack, socket) => {
     const client = clients[socket.imei]
-    if (!client) return
+    if (!client) return self.closeSocket(null, socket)
 
-    const data = {}
-    data._device = socket.imei
-    data.time = Date.now()
-    data.status = ack.iostatus
-    data.ack = 1
-
-    app.setIOStatus(data._device, ack.iostatus, null, data.time)
-
-    if (ack.cmdId) {
-      app.cmd.setDone(ack.cmdId)
+    if (!ack.cmdId) {
+      return app.debug('INVALID ACK - NO cmdId')
     }
 
-    if (client.waitingAck && client.cmd.cmdId) {
-      app.emit('ack-' + client.cmd.cmdId)
-    }
+    ack._device = socket.imei
+    ack.time = Date.now()
 
-    app.watcher.post(data, 'ack')
+    app.setIOStatus(ack._device, ack.iostatus, null, ack.time)
+    app.cmd.setDone(ack.cmdId)
+
+    app.watcher.post(ack, 'ack')
 
     client.waitingAck = false
   }
 
   /**
    * Comunica a watcher.io que un dispositivo está vivo.
-   *
    * @param {Net.Socket} socket
    */
   const processAlive = (data, socket) => {
@@ -406,7 +400,6 @@ module.exports = (app) => {
     }
 
     // enviamos el alive al watcher
-    console.log('before post', data)
     app.watcher.post(data, 'alive')
 
     // buscamos comandos en cache
