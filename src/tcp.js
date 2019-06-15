@@ -385,6 +385,25 @@ module.exports = (app) => {
     client.waitingAck = false
   }
 
+  const processAck2 = (ack, socket) => {
+    const client = clients[socket.imei]
+    if (!client) return self.closeSocket(null, socket)
+
+    if (!ack.cmdId) {
+      return app.debug('INVALID ACK - NO cmdId')
+    }
+
+    ack._device = socket.imei
+    ack.time = Date.now()
+
+    app.setIOStatus(ack._device, ack.iostatus, null, ack.time)
+    app.cmd.setDone(ack.cmdId)
+
+    app.watcher.post(ack, 'ack')
+
+    client.waitingAck = false
+  }
+
   /**
    * Comunica a watcher.io que un dispositivo está vivo.
    * @param {Net.Socket} socket
