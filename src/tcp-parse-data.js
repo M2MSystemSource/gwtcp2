@@ -221,9 +221,9 @@ module.exports = (app) => {
 
     props.forEach((prop) => {
       const a = prop.split(':')
-      if (a[0] === 'id')  result.cmdId = a[1]
-      else if (a[0] === 'io')  result.iostatus = a[1]
-      else if (a[0] === 'props')  result.processedProps = a[1]
+      if (a[0] === 'id') result.cmdId = a[1]
+      else if (a[0] === 'io') result.iostatus = a[1]
+      else if (a[0] === 'props') result.processedProps = a[1]
     })
 
     console.log('')
@@ -294,7 +294,7 @@ module.exports = (app) => {
       mode: 'sensing',
       _device: imei,
       keepAlive: false,
-      time: Date.now(),
+      time: app.utils.parseSensingDate(sensors),
       data: self.createSensing(sensors, batt, data)
     }
   }
