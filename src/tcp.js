@@ -91,7 +91,9 @@ module.exports = (app) => {
   }).listen(app.conf.tcpPort)
 
   self.closeSocket = (imei, socket) => {
-    if (socket) socket.destroy()
+    if (socket) {
+      socket.destroy()
+    }
     if (!imei) return
 
     app.setIOStatus(imei, 0)
@@ -239,7 +241,7 @@ module.exports = (app) => {
    * @param {NetClient} socket
    */
   const processGreetings = (position, socket) => {
-    if (!validateImeiOrCloseTcp(position.imei)) {
+    if (!validateImeiOrCloseTcp(position.imei, socket)) {
       return console.log('BIG FAIL! GREETINGS invalid imei')
     }
 
@@ -290,6 +292,8 @@ module.exports = (app) => {
 
   const processSensing = (sensing, socket) => {
     let imei = sensing._device || socket.imei
+
+    return console.log('okok', sensing)
 
     if (!validateImeiOrCloseTcp(imei)) {
       console.log('BIG FAIL! invalid imei antes de savePosition!!!')
@@ -364,25 +368,6 @@ module.exports = (app) => {
     setTimeout(() => {
       self.transmitCmd(client)
     }, 1000)
-  }
-
-  const processAck2 = (ack, socket) => {
-    const client = clients[socket.imei]
-    if (!client) return self.closeSocket(null, socket)
-
-    if (!ack.cmdId) {
-      return app.debug('INVALID ACK - NO cmdId')
-    }
-
-    ack._device = socket.imei
-    ack.time = Date.now()
-
-    app.setIOStatus(ack._device, ack.iostatus, null, ack.time)
-    app.cmd.setDone(ack.cmdId)
-
-    app.watcher.post(ack, 'ack')
-
-    client.waitingAck = false
   }
 
   const processAck2 = (ack, socket) => {

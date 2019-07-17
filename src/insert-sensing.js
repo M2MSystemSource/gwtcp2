@@ -17,6 +17,8 @@ module.exports = (app) => {
 
     delete sensing.mode
 
+    return console.log('sensing', sensing)
+
     parallel([
       // añadimos la posición a colección de tracking
       (callback) => Sensing.insertOne(sensing, callback),
